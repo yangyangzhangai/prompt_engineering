@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chutes Prompt Atelier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-1: #f8efe7;
+            --bg-2: #f3e8e3;
+            --bg-3: #e9d9cf;
+            --surface: rgba(255, 255, 255, 0.78);
+            --surface-strong: rgba(255, 255, 255, 0.9);
+            --line: rgba(123, 92, 74, 0.18);
+            --text: #3f2f2a;
+            --text-soft: #6d5b53;
+            --accent: #b46d5d;
+            --accent-hover: #9a5b4e;
+            --ok: #2f7a62;
+            --warn: #cb8f45;
+            --error: #b84949;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --shadow: 0 14px 40px rgba(68, 37, 26, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Noto Sans SC", sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            background:
+                radial-gradient(1200px 500px at 18% -5%, rgba(230, 191, 164, 0.32), transparent 70%),
+                radial-gradient(900px 540px at 92% 10%, rgba(216, 171, 170, 0.3), transparent 70%),
+                linear-gradient(140deg, var(--bg-1), var(--bg-2) 48%, var(--bg-3));
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 20px;
+            animation: rise 560ms ease-out both;
+        }
+
+        .hero h1 {
+            font-family: "Cormorant Garamond", serif;
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            letter-spacing: 0.02em;
+            color: #4f342f;
+        }
+
+        .hero p {
+            margin-top: 6px;
+            color: var(--text-soft);
+            font-size: 0.96rem;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .composer {
+            padding: 18px;
+            margin-bottom: 18px;
+            animation: rise 720ms ease-out both;
+        }
+
+        .composer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .composer-top h2 {
+            font-size: 1.05rem;
+            color: #543d36;
+        }
+
+        .count-badge {
+            background: rgba(180, 109, 93, 0.13);
+            color: #7b483d;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            border: 1px solid rgba(180, 109, 93, 0.22);
+        }
+
+        .message-input {
+            width: 100%;
+            min-height: 112px;
+            border: 1px solid rgba(122, 92, 78, 0.28);
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 14px 15px;
+            font-size: 15px;
+            color: var(--text);
+            resize: vertical;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .message-input:focus,
+        .field input:focus,
+        .field textarea:focus,
+        .field select:focus {
+            outline: none;
+            border-color: rgba(180, 109, 93, 0.6);
+            box-shadow: 0 0 0 4px rgba(180, 109, 93, 0.14);
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .btn-main {
+            padding: 11px 22px;
+            border-radius: 12px;
+            background: linear-gradient(130deg, #c37f6a, #aa6657);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 10px 24px rgba(153, 88, 71, 0.22);
+        }
+
+        .btn-main:hover { transform: translateY(-1px); }
+        .btn-main:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-soft,
+        .btn-danger,
+        .btn-add {
+            padding: 9px 14px;
+            border-radius: 10px;
+            font-size: 0.86rem;
+            font-weight: 500;
+        }
+
+        .btn-soft {
+            background: rgba(118, 93, 82, 0.1);
+            color: #5d4840;
+        }
+
+        .btn-soft:hover { background: rgba(118, 93, 82, 0.16); }
+
+        .btn-danger {
+            background: rgba(184, 73, 73, 0.12);
+            color: #9f3f3f;
+        }
+
+        .btn-danger:hover { background: rgba(184, 73, 73, 0.18); }
+
+        .btn-add {
+            background: rgba(47, 122, 98, 0.12);
+            color: #2f7a62;
+        }
+
+        .btn-add:hover { background: rgba(47, 122, 98, 0.19); }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 16px;
+        }
+
+        .test-card {
+            background: var(--surface-strong);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 12px 34px rgba(72, 39, 30, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 460px;
+            animation: rise 700ms ease-out both;
+        }
+
+        .card-header {
+            padding: 13px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(120deg, rgba(247, 232, 220, 0.9), rgba(243, 218, 209, 0.72));
+            border-bottom: 1px solid var(--line);
+            gap: 8px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .card-title h3 {
+            font-size: 1rem;
+            color: #5d4038;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .card-status {
+            font-size: 0.75rem;
+            border-radius: 999px;
+            padding: 4px 9px;
+            color: #fff;
+            background: #8b7d76;
+            flex-shrink: 0;
+        }
+
+        .card-status.ready { background: var(--ok); }
+        .card-status.loading { background: var(--warn); }
+        .card-status.error { background: var(--error); }
+
+        .icon-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(184, 73, 73, 0.12);
+            color: #8f3f3f;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .icon-btn:hover { background: rgba(184, 73, 73, 0.2); }
+
+        .card-body {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .config-section {
+            border: 1px solid rgba(122, 92, 78, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.72);
+            overflow: hidden;
+        }
+
+        .config-toggle {
+            width: 100%;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #6a4f47;
+            background: rgba(245, 237, 230, 0.9);
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        .config-toggle svg {
+            transition: transform 0.24s ease;
+        }
+
+        .config-toggle.collapsed svg {
+            transform: rotate(-90deg);
+        }
+
+        .config-form {
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .config-form.collapsed { display: none; }
+
+        .field {
+            display: grid;
+            gap: 5px;
+        }
+
+        .field label {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        .field input,
+        .field textarea,
+        .field select {
+            width: 100%;
+            border: 1px solid rgba(122, 92, 78, 0.24);
+            border-radius: 9px;
+            padding: 9px 10px;
+            background: #fff;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .field textarea { min-height: 74px; resize: vertical; }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+        }
+
+        .row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .model-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: end;
+        }
+
+        .model-custom.hidden { display: none; }
+
+        .saved-indicator {
+            font-size: 0.75rem;
+            color: var(--ok);
+            margin-top: -1px;
+        }
+
+        .save-line {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .save-tip {
+            font-size: 0.77rem;
+            color: var(--ok);
+            min-height: 17px;
+        }
+
+        .result-section {
+            border: 1px solid rgba(122, 92, 78, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.82);
+            padding: 12px;
+            min-height: 190px;
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .result-placeholder {
+            color: #8b766c;
+            text-align: center;
+            font-size: 0.9rem;
+            padding-top: 42px;
+            line-height: 1.6;
+        }
+
+        .result-meta {
+            margin-bottom: 8px;
+            color: #8a665b;
+            font-size: 0.78rem;
+        }
+
+        .result-content {
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .result-content.error { color: #9f3f3f; }
+
+        .error-details {
+            margin-top: 10px;
+            border: 1px solid rgba(184, 73, 73, 0.28);
+            background: rgba(255, 247, 247, 0.9);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 0.77rem;
+        }
+
+        .error-details summary { cursor: pointer; font-weight: 600; }
+
+        .error-details pre {
+            margin-top: 8px;
+            background: #fff;
+            border-radius: 6px;
+            padding: 8px;
+            overflow-x: auto;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 140px;
+        }
+
+        .spinner {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 3px solid rgba(180, 109, 93, 0.18);
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 820px) {
+            body { padding: 14px; }
+            .row-2 { grid-template-columns: 1fr; }
+            .row-3 { grid-template-columns: 1fr; }
+            .model-row { grid-template-columns: 1fr; }
+            .card-header { align-items: flex-start; }
+            .action-row { gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Chutes Prompt Atelier</h1>
+            <p>默认 3 个模型并行，可随手新增模型卡片，边调试边对比。</p>
+        </div>
+
+        <section class="panel composer">
+            <div class="composer-top">
+                <h2>写下你的 Prompt</h2>
+                <span id="cardCount" class="count-badge">当前 3 个模型</span>
+            </div>
+
+            <textarea id="userMessage" class="message-input" placeholder="在这里输入你的消息，点击发送后会并行请求所有卡片..."></textarea>
+
+            <div class="action-row">
+                <button id="sendBtn" class="btn-main" onclick="sendToAll()">发送到全部模型</button>
+                <button class="btn-add" onclick="addModelCard()">+ 添加模型卡片</button>
+                <button class="btn-soft" onclick="loadAnnotationTemplate()">批注测试模板</button>
+                <button class="btn-soft" onclick="loadRandomAnnotationTest()">随机批注测试</button>
+                <button class="btn-soft" onclick="clearAll()">清空结果</button>
+                <button class="btn-danger" onclick="clearAllStorage()">清除本地配置</button>
+            </div>
+        </section>
+
+        <div class="results-grid" id="resultsGrid"></div>
+    </div>
+
+    <script>
+        const CHUTES_API_URL = "/v1/chat/completions";
+        const CHUTES_MODELS_URL = "/v1/models";
+        const STORAGE_KEY = "chutes_cards_v3";
+        const MODEL_CACHE_KEY = "chutes_models_cache_v1";
+        const MODEL_CACHE_TTL_MS = 1000 * 60 * 30;
+
+        const FALLBACK_MODELS = [
+            { value: "Qwen/Qwen3-32B", label: "Qwen3 32B" },
+            { value: "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", label: "Qwen3 235B Instruct 2507 TEE" },
+            { value: "Qwen/Qwen3-235B-A22B-Thinking-2507", label: "Qwen3 235B Thinking 2507" },
+            { value: "Qwen/Qwen3-Coder-Next-TEE", label: "Qwen3 Coder Next TEE" },
+            { value: "Qwen/Qwen2.5-72B-Instruct", label: "Qwen2.5 72B Instruct" },
+            { value: "Qwen/Qwen2.5-Coder-32B-Instruct", label: "Qwen2.5 Coder 32B" },
+            { value: "deepseek-ai/DeepSeek-V3.2-TEE", label: "DeepSeek V3.2 TEE" },
+            { value: "deepseek-ai/DeepSeek-R1-0528-TEE", label: "DeepSeek R1 0528 TEE" },
+            { value: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", label: "DeepSeek R1 Distill 70B" },
+            { value: "NousResearch/Hermes-4-405B-FP8-TEE", label: "Hermes 4 405B FP8 TEE" },
+            { value: "moonshotai/Kimi-K2.5-TEE", label: "Kimi K2.5 TEE" },
+            { value: "openai/gpt-oss-120b-TEE", label: "GPT OSS 120B TEE" },
+            { value: "zai-org/GLM-5-TEE", label: "GLM-5 TEE" },
+            { value: "zai-org/GLM-4.7-TEE", label: "GLM-4.7 TEE" },
+            { value: "MiniMaxAI/MiniMax-M2.5-TEE", label: "MiniMax M2.5 TEE" },
+            { value: "custom", label: "手动输入模型..." }
+        ];
+
+        let CHUTES_MODELS = [...FALLBACK_MODELS];
+
+        const DEFAULT_CARDS = [
+            {
+                name: "Qwen3 对照",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "Qwen/Qwen3-32B",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            },
+            {
+                name: "DeepSeek 对照",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "deepseek-ai/DeepSeek-V3.2-TEE",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            },
+            {
+                name: "Hermes 对照",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "NousResearch/Hermes-4-405B-FP8-TEE",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            }
+        ];
+
+        const ANNOTATION_TEMPLATE = {
+            eventType: "mood_recorded",
+            eventData: {
+                summary: "我有点焦虑，脑子转不停",
+                mood: "我有点焦虑，脑子转不停",
+                messageId: "mood-msg-001"
+            },
+            userContext: {
+                todayActivities: 4,
+                todayDuration: 210,
+                currentHour: 21,
+                recentMoodMessages: [
+                    "下午有点烦躁",
+                    "开完会有点累",
+                    "我有点焦虑，脑子转不停"
+                ],
+                recentAnnotations: [],
+                todayActivitiesList: [
+                    { content: "写方案", duration: 90, activityType: "work", moodLabel: "专注", timestamp: 1710000000000, completed: true },
+                    { content: "开项目会", duration: 60, activityType: "work", moodLabel: "疲惫", timestamp: 1710003600000, completed: true },
+                    { content: "刷短视频", duration: 30, activityType: "entertainment", moodLabel: "无聊", timestamp: 1710007200000, completed: false }
+                ]
+            },
+            lang: "zh"
+        };
+
+        const ANNOTATION_EVENT_TYPES = [
+            "activity_completed",
+            "activity_recorded",
+            "mood_recorded",
+            "task_deleted",
+            "idle_detected",
+            "overwork_detected",
+            "day_complete"
+        ];
+
+        const RANDOM_ACTIVITY_CONTENTS = [
+            "写方案",
+            "开项目会",
+            "修复登录问题",
+            "整理需求",
+            "做代码评审",
+            "写单测",
+            "更新周报",
+            "处理线上告警",
+            "学习新框架",
+            "规划明日任务"
+        ];
+
+        const RANDOM_MOOD_TEXTS = [
+            "有点焦虑，脑子停不下来",
+            "状态还不错，效率挺高",
+            "今天略疲惫，专注力一般",
+            "心情平稳，可以继续推进",
+            "有点烦躁，想先缓一缓",
+            "灵感很多，想赶紧实现"
+        ];
+
+        const RANDOM_MOOD_LABELS = ["专注", "疲惫", "满足", "平静", "焦虑", "无聊", "有干劲"];
+        const RANDOM_ACTIVITY_TYPES = ["work", "study", "meeting", "entertainment", "life"];
+
+        let annotationRandomPool = [];
+
+        let cards = [];
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function defaultCardTemplate() {
+            return {
+                name: "新模型",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "Qwen/Qwen3-32B",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            };
+        }
+
+        function createCardId() {
+            return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+        }
+
+        function normalizeCard(card) {
+            const safe = { ...defaultCardTemplate(), ...card };
+            if (!safe.id) safe.id = createCardId();
+            if (!safe.apiUrl) safe.apiUrl = CHUTES_API_URL;
+            if (Number.isNaN(Number(safe.temperature))) safe.temperature = 0.7;
+            if (Number.isNaN(Number(safe.topP))) safe.topP = 1;
+            if (!safe.maxTokens || Number.isNaN(Number(safe.maxTokens))) safe.maxTokens = 2048;
+            return safe;
+        }
+
+        function loadCards() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed.map(normalizeCard);
+                    }
+                } catch (err) {
+                    console.error("读取本地配置失败:", err);
+                }
+            }
+
+            const legacy = migrateLegacyConfigs();
+            if (legacy.length > 0) return legacy.map(normalizeCard);
+
+            return DEFAULT_CARDS.map(item => normalizeCard(item));
+        }
+
+        function migrateLegacyConfigs() {
+            const migrated = [];
+            for (let i = 1; i <= 6; i += 1) {
+                const old = localStorage.getItem(`chutes_config_${i}`);
+                if (old) {
+                    try {
+                        const parsed = JSON.parse(old);
+                        migrated.push({
+                            id: createCardId(),
+                            name: parsed.name || `模型 ${i}`,
+                            apiUrl: parsed.apiUrl || CHUTES_API_URL,
+                            apiKey: parsed.apiKey || localStorage.getItem(`chutes_api_key_${i}`) || "",
+                            model: parsed.model || "Qwen/Qwen3-32B",
+                            temperature: Number(parsed.temperature ?? 0.7),
+                            topP: Number(parsed.topP ?? 1),
+                            topK: parsed.topK ?? "",
+                            seed: parsed.seed ?? "",
+                            maxTokens: Number(parsed.maxTokens ?? 2048),
+                            systemPrompt: parsed.systemPrompt || "你是一个有帮助的助手。"
+                        });
+                    } catch (err) {
+                        console.error(`迁移旧配置 chutes_config_${i} 失败:`, err);
+                    }
+                }
+            }
+            return migrated;
+        }
+
+        function saveCards() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+        }
+
+        function updateTopMeta() {
+            document.getElementById("cardCount").textContent = `当前 ${cards.length} 个模型`;
+            document.getElementById("sendBtn").textContent = cards.length > 0 ? `发送到全部 ${cards.length} 个模型` : "发送到全部模型";
+        }
+
+        function createModelOptions(selectedModel) {
+            return CHUTES_MODELS
+                .map(item => `<option value="${item.value}" ${item.value === selectedModel ? "selected" : ""}>${item.label}</option>`)
+                .join("");
+        }
+
+        function buildLabelFromModelId(modelId) {
+            const parts = String(modelId || "").split("/");
+            return parts.length > 1 ? parts[1] : String(modelId || "");
+        }
+
+        function toModelOptionsFromApi(responseData) {
+            const list = Array.isArray(responseData?.data) ? responseData.data : [];
+            const dynamic = list
+                .map(item => String(item?.id || "").trim())
+                .filter(Boolean)
+                .map(id => ({ value: id, label: buildLabelFromModelId(id) }));
+
+            const map = new Map();
+            [...dynamic, ...FALLBACK_MODELS].forEach(item => {
+                if (!item || !item.value || item.value === "custom") return;
+                if (!map.has(item.value)) map.set(item.value, item.label || item.value);
+            });
+
+            const merged = Array.from(map.entries())
+                .map(([value, label]) => ({ value, label }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+
+            merged.push({ value: "custom", label: "手动输入模型..." });
+            return merged;
+        }
+
+        function setModelStatus(id, text) {
+            const tip = document.getElementById(`model-status-${id}`);
+            if (tip) tip.textContent = text || "";
+        }
+
+        function deriveModelsUrl(apiUrl) {
+            const raw = String(apiUrl || "").trim();
+            if (!raw) return CHUTES_MODELS_URL;
+            if (raw.includes("/v1/chat/completions")) return raw.replace("/v1/chat/completions", "/v1/models");
+            if (raw.endsWith("/v1")) return `${raw}/models`;
+            if (raw.endsWith("/v1/")) return `${raw}models`;
+            if (raw.includes("/v1/models")) return raw;
+            return CHUTES_MODELS_URL;
+        }
+
+        function loadModelCache() {
+            const raw = localStorage.getItem(MODEL_CACHE_KEY);
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed.models) || !parsed.ts) return;
+                if (Date.now() - Number(parsed.ts) > MODEL_CACHE_TTL_MS) return;
+                CHUTES_MODELS = parsed.models;
+            } catch (err) {
+                console.error("读取模型缓存失败:", err);
+            }
+        }
+
+        function saveModelCache(models) {
+            localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify({ ts: Date.now(), models }));
+        }
+
+        function applyModelOptionsToCard(id, keepValue) {
+            const select = document.getElementById(`model-select-${id}`);
+            const customInput = document.getElementById(`model-custom-${id}`);
+            if (!select || !customInput) return;
+
+            const before = keepValue || getSelectedModel(id);
+            const known = isKnownModel(before);
+            const selected = known ? before : "custom";
+
+            select.innerHTML = createModelOptions(selected);
+            if (!known) {
+                customInput.classList.remove("hidden");
+                customInput.value = before;
+            }
+        }
+
+        function applyModelOptionsToAllCards() {
+            cards.forEach(card => applyModelOptionsToCard(card.id));
+        }
+
+        async function refreshModelListForCard(id, silent) {
+            const config = collectCardConfig(id);
+            const modelsUrl = deriveModelsUrl(config.apiUrl);
+            const headers = { "Content-Type": "application/json" };
+            if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
+
+            setModelStatus(id, silent ? "" : "刷新模型中...");
+
+            try {
+                const response = await fetch(modelsUrl, { method: "GET", headers });
+                if (!response.ok) {
+                    throw new Error(`模型列表请求失败: HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const models = toModelOptionsFromApi(data);
+                if (!models.length) {
+                    throw new Error("模型列表为空");
+                }
+
+                CHUTES_MODELS = models;
+                saveModelCache(models);
+                applyModelOptionsToAllCards();
+                setModelStatus(id, `已同步 ${models.length - 1} 个模型`);
+                setTimeout(() => setModelStatus(id, ""), 2400);
+            } catch (err) {
+                console.error("刷新模型失败:", err);
+                if (!silent) {
+                    setModelStatus(id, `刷新失败: ${String(err.message || err)}`);
+                }
+            }
+        }
+
+        function isKnownModel(model) {
+            return CHUTES_MODELS.some(item => item.value === model && item.value !== "custom");
+        }
+
+        function resultPlaceholder() {
+            return "<div class=\"result-placeholder\">📝 结果会显示在这里<br>展开配置填好 API Key 后即可发送</div>";
+        }
+
+        function createCardEl(card) {
+            const isCustomVisible = !isKnownModel(card.model);
+            const selectedModel = isCustomVisible ? "custom" : card.model;
+
+            const el = document.createElement("div");
+            el.className = "test-card";
+            el.id = `card-${card.id}`;
+            el.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🤖</span>
+                        <h3 id="title-${card.id}">${escapeHtml(card.name)}</h3>
+                    </div>
+                    <span class="card-status ready" id="status-${card.id}">就绪</span>
+                    <button class="icon-btn" onclick="removeModelCard('${card.id}')" title="删除该卡片" ${cards.length <= 1 ? "style=\"display:none\"" : ""}>×</button>
+                </div>
+                <div class="card-body">
+                    <div class="config-section">
+                        <button class="config-toggle collapsed" id="toggle-${card.id}" onclick="toggleConfig('${card.id}')">
+                            <span>配置设置</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="config-form collapsed" id="config-${card.id}">
+                            <div class="field">
+                                <label>显示名称</label>
+                                <input type="text" id="name-${card.id}" value="${escapeHtml(card.name)}" placeholder="给这个模型起个名字" oninput="handleNameInput('${card.id}')">
+                            </div>
+                            <div class="field">
+                                <label>API 地址</label>
+                                <input type="text" id="url-${card.id}" value="${escapeHtml(card.apiUrl)}" placeholder="https://llm.chutes.ai/v1/chat/completions">
+                            </div>
+                            <div class="field">
+                                <label>API Key</label>
+                                <input type="password" id="key-${card.id}" value="${escapeHtml(card.apiKey)}" placeholder="在 chutes.ai 获取 API Key">
+                                <div class="saved-indicator" id="saved-${card.id}">${card.apiKey ? "💾 本地已保存" : ""}</div>
+                            </div>
+
+                            <div class="field">
+                                <label>模型</label>
+                                <div class="model-row">
+                                    <select id="model-select-${card.id}" onchange="handleModelChange('${card.id}')">${createModelOptions(selectedModel)}</select>
+                                    <button type="button" class="btn-soft" onclick="refreshModelListForCard('${card.id}')">刷新模型</button>
+                                </div>
+                                <input type="text" id="model-custom-${card.id}" class="model-custom ${isCustomVisible ? "" : "hidden"}" value="${escapeHtml(card.model)}" placeholder="如: meta-llama/Llama-3.3-70B-Instruct" oninput="handleCustomModelInput('${card.id}')">
+                                <div class="save-tip" id="model-status-${card.id}"></div>
+                            </div>
+
+                            <div class="row-2">
+                                <div class="field">
+                                    <label>温度</label>
+                                    <input type="number" id="temp-${card.id}" value="${Number(card.temperature)}" min="0" max="2" step="0.1">
+                                </div>
+                                <div class="field">
+                                    <label>Max Tokens</label>
+                                    <input type="number" id="maxtokens-${card.id}" value="${Number(card.maxTokens || 2048)}" min="1" max="262144" step="1">
+                                </div>
+                            </div>
+
+                            <div class="row-3">
+                                <div class="field">
+                                    <label>Top P</label>
+                                    <input type="number" id="topp-${card.id}" value="${Number(card.topP ?? 1)}" min="0" max="1" step="0.01">
+                                </div>
+                                <div class="field">
+                                    <label>Top K</label>
+                                    <input type="number" id="topk-${card.id}" value="${escapeHtml(String(card.topK ?? ""))}" min="0" step="1" placeholder="留空=默认">
+                                </div>
+                                <div class="field">
+                                    <label>Seed</label>
+                                    <input type="number" id="seed-${card.id}" value="${escapeHtml(String(card.seed ?? ""))}" step="1" placeholder="留空=随机">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label>系统 Prompt</label>
+                                <textarea id="system-${card.id}" placeholder="设置系统角色或指令...">${escapeHtml(card.systemPrompt || "")}</textarea>
+                            </div>
+
+                            <div class="save-line">
+                                <button class="btn-main" style="padding:9px 14px; font-size:0.84rem" onclick="saveCard('${card.id}')">保存配置</button>
+                                <span id="save-status-${card.id}" class="save-tip"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="result-section" id="result-${card.id}">
+                        ${resultPlaceholder()}
+                    </div>
+                </div>
+            `;
+            return el;
+        }
+
+        function renderCards() {
+            const grid = document.getElementById("resultsGrid");
+            grid.innerHTML = "";
+            cards.forEach(card => {
+                grid.appendChild(createCardEl(card));
+            });
+            updateTopMeta();
+        }
+
+        function toggleConfig(id) {
+            const form = document.getElementById(`config-${id}`);
+            const toggle = document.getElementById(`toggle-${id}`);
+            if (!form || !toggle) return;
+            form.classList.toggle("collapsed");
+            toggle.classList.toggle("collapsed");
+        }
+
+        function handleNameInput(id) {
+            const nameInput = document.getElementById(`name-${id}`);
+            const title = document.getElementById(`title-${id}`);
+            if (!nameInput || !title) return;
+            title.textContent = nameInput.value.trim() || "未命名模型";
+        }
+
+        function syncDisplayNameWithModel(id) {
+            const nameInput = document.getElementById(`name-${id}`);
+            const select = document.getElementById(`model-select-${id}`);
+            const customInput = document.getElementById(`model-custom-${id}`);
+            if (!nameInput || !select || !customInput) return;
+
+            let nextName = "";
+            if (select.value !== "custom") {
+                const selectedOption = select.options[select.selectedIndex];
+                nextName = (selectedOption?.textContent || buildLabelFromModelId(select.value)).trim();
+            } else {
+                nextName = buildLabelFromModelId(customInput.value.trim());
+            }
+
+            if (!nextName) return;
+            nameInput.value = nextName;
+            handleNameInput(id);
+        }
+
+        function handleModelChange(id) {
+            const select = document.getElementById(`model-select-${id}`);
+            const customInput = document.getElementById(`model-custom-${id}`);
+            if (!select || !customInput) return;
+            if (select.value === "custom") {
+                customInput.classList.remove("hidden");
+                customInput.focus();
+            } else {
+                customInput.classList.add("hidden");
+                customInput.value = select.value;
+            }
+
+            syncDisplayNameWithModel(id);
+        }
+
+        function handleCustomModelInput(id) {
+            const select = document.getElementById(`model-select-${id}`);
+            if (select) select.value = "custom";
+            syncDisplayNameWithModel(id);
+        }
+
+        function toggleCustomModel(id) {
+            const customInput = document.getElementById(`model-custom-${id}`);
+            if (!customInput) return;
+            customInput.classList.toggle("hidden");
+            if (!customInput.classList.contains("hidden")) {
+                customInput.focus();
+                const select = document.getElementById(`model-select-${id}`);
+                if (select) select.value = "custom";
+            }
+        }
+
+        function getSelectedModel(id) {
+            const select = document.getElementById(`model-select-${id}`);
+            const customInput = document.getElementById(`model-custom-${id}`);
+            if (!select || !customInput) return "";
+
+            const customValue = customInput.value.trim();
+            if (!customInput.classList.contains("hidden") && customValue) return customValue;
+            if (select.value === "custom") return customValue;
+            return select.value;
+        }
+
+        function collectCardConfig(id) {
+            const topKRaw = document.getElementById(`topk-${id}`).value.trim();
+            const seedRaw = document.getElementById(`seed-${id}`).value.trim();
+            return {
+                id,
+                name: document.getElementById(`name-${id}`).value.trim() || "未命名模型",
+                apiUrl: document.getElementById(`url-${id}`).value.trim() || CHUTES_API_URL,
+                apiKey: document.getElementById(`key-${id}`).value.trim(),
+                model: getSelectedModel(id),
+                temperature: Number(document.getElementById(`temp-${id}`).value || 0.7),
+                topP: Number(document.getElementById(`topp-${id}`).value || 1),
+                topK: topKRaw ? Number(topKRaw) : "",
+                seed: seedRaw ? Number(seedRaw) : "",
+                maxTokens: Number(document.getElementById(`maxtokens-${id}`).value || 2048),
+                systemPrompt: document.getElementById(`system-${id}`).value.trim()
+            };
+        }
+
+        function saveCard(id) {
+            syncDisplayNameWithModel(id);
+            const config = collectCardConfig(id);
+            if (!config.model) {
+                alert("请先选择模型，或在手动模型里输入模型名。");
+                return;
+            }
+
+            cards = cards.map(item => item.id === id ? normalizeCard(config) : item);
+            saveCards();
+
+            const tip = document.getElementById(`save-status-${id}`);
+            if (tip) {
+                tip.textContent = "已保存";
+                setTimeout(() => {
+                    tip.textContent = "";
+                }, 2000);
+            }
+
+            const saved = document.getElementById(`saved-${id}`);
+            if (saved) {
+                saved.textContent = config.apiKey ? "💾 本地已保存" : "";
+            }
+
+            handleNameInput(id);
+            updateTopMeta();
+        }
+
+        function addModelCard() {
+            const base = normalizeCard(defaultCardTemplate());
+            base.name = `新模型 ${cards.length + 1}`;
+            cards.push(base);
+            saveCards();
+            renderCards();
+        }
+
+        function removeModelCard(id) {
+            if (cards.length <= 1) return;
+            cards = cards.filter(item => item.id !== id);
+            saveCards();
+            renderCards();
+        }
+
+        async function sendToAll() {
+            const message = document.getElementById("userMessage").value.trim();
+            if (!message) {
+                alert("请先输入消息。");
+                return;
+            }
+
+            const btn = document.getElementById("sendBtn");
+            btn.disabled = true;
+            btn.textContent = "发送中...";
+
+            cards = cards.map(item => normalizeCard(collectCardConfig(item.id)));
+            saveCards();
+
+            await Promise.all(cards.map(card => sendToModel(card.id, message)));
+            updateTopMeta();
+            btn.disabled = false;
+        }
+
+        async function sendToModel(id, message) {
+            const config = collectCardConfig(id);
+            const resultDiv = document.getElementById(`result-${id}`);
+            const statusSpan = document.getElementById(`status-${id}`);
+
+            if (!config.apiKey) {
+                resultDiv.innerHTML = "<div class=\"result-content error\">⚠️ 未配置 API Key，请先在配置里填写后再发送。</div>";
+                statusSpan.className = "card-status error";
+                statusSpan.textContent = "未配置";
+                return;
+            }
+
+            if (!config.model) {
+                resultDiv.innerHTML = "<div class=\"result-content error\">⚠️ 未配置模型，请先选择或手动填写模型名。</div>";
+                statusSpan.className = "card-status error";
+                statusSpan.textContent = "未配置";
+                return;
+            }
+
+            resultDiv.innerHTML = "<div class=\"loading-spinner\"><div class=\"spinner\"></div></div>";
+            statusSpan.className = "card-status loading";
+            statusSpan.textContent = "请求中";
+
+            const requestBody = {
+                model: config.model,
+                messages: [
+                    { role: "system", content: config.systemPrompt || "You are a helpful assistant." },
+                    { role: "user", content: message }
+                ],
+                temperature: config.temperature,
+                top_p: config.topP,
+                max_tokens: config.maxTokens,
+                stream: false
+            };
+
+            if (config.topK !== "" && !Number.isNaN(Number(config.topK))) {
+                requestBody.top_k = Number(config.topK);
+            }
+            if (config.seed !== "" && !Number.isNaN(Number(config.seed))) {
+                requestBody.seed = Number(config.seed);
+            }
+
+            try {
+                const startedAt = Date.now();
+                const response = await fetch(config.apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${config.apiKey}`
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const duration = ((Date.now() - startedAt) / 1000).toFixed(2);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const content =
+                    data.choices?.[0]?.message?.content ||
+                    data.choices?.[0]?.text ||
+                    data.content ||
+                    data.response ||
+                    data.result ||
+                    JSON.stringify(data, null, 2);
+
+                const usage = data.usage?.total_tokens ? ` | 🔤 ${data.usage.total_tokens} tokens` : "";
+                resultDiv.innerHTML = `
+                    <div class="result-meta">⏱️ ${duration}s | 📊 ${String(content).length} 字符${usage}</div>
+                    <div class="result-content">${escapeHtml(String(content))}</div>
+                `;
+
+                statusSpan.className = "card-status ready";
+                statusSpan.textContent = "完成";
+            } catch (error) {
+                let troubleshooting = "";
+                const messageText = String(error.message || "请求失败");
+
+                if (messageText.includes("404")) {
+                    troubleshooting = "可能是模型名错误或该模型当前不可用。";
+                } else if (messageText.includes("401")) {
+                    troubleshooting = "API Key 无效，请重新检查。";
+                } else if (messageText.includes("Failed to fetch") || messageText.includes("NetworkError")) {
+                    troubleshooting = "网络连接或代理设置可能有问题。";
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="result-content error">❌ ${escapeHtml(messageText)}${troubleshooting ? `<br><br>💡 ${escapeHtml(troubleshooting)}` : ""}</div>
+                    <details class="error-details">
+                        <summary>查看请求详情（调试用）</summary>
+                        <pre><strong>URL:</strong> ${escapeHtml(config.apiUrl)}
+<strong>Model:</strong> ${escapeHtml(config.model)}
+<strong>Request:</strong>
+${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
+                    </details>
+                `;
+
+                statusSpan.className = "card-status error";
+                statusSpan.textContent = "错误";
+            }
+        }
+
+        function clearAll() {
+            document.getElementById("userMessage").value = "";
+            cards.forEach(card => {
+                const resultDiv = document.getElementById(`result-${card.id}`);
+                const status = document.getElementById(`status-${card.id}`);
+                if (resultDiv) resultDiv.innerHTML = resultPlaceholder();
+                if (status) {
+                    status.className = "card-status ready";
+                    status.textContent = "就绪";
+                }
+            });
+        }
+
+        function clearAllStorage() {
+            const ok = confirm("确定清除所有本地保存的配置和 API Key 吗？");
+            if (!ok) return;
+
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(MODEL_CACHE_KEY);
+            for (let i = 1; i <= 6; i += 1) {
+                localStorage.removeItem(`chutes_config_${i}`);
+                localStorage.removeItem(`chutes_api_key_${i}`);
+            }
+
+            cards = DEFAULT_CARDS.map(item => normalizeCard(item));
+            renderCards();
+            alert("已清除，恢复为默认 3 个模型卡片。");
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomPick(list) {
+            if (!Array.isArray(list) || list.length === 0) return "";
+            return list[randomInt(0, list.length - 1)];
+        }
+
+        function buildRandomActivity(baseTimestamp) {
+            return {
+                content: randomPick(RANDOM_ACTIVITY_CONTENTS),
+                duration: randomInt(10, 140),
+                activityType: randomPick(RANDOM_ACTIVITY_TYPES),
+                moodLabel: randomPick(RANDOM_MOOD_LABELS),
+                timestamp: baseTimestamp - randomInt(0, 8 * 60) * 60 * 1000,
+                completed: Math.random() > 0.3
+            };
+        }
+
+        function buildRandomEventData(eventType) {
+            if (eventType === "mood_recorded") {
+                const mood = randomPick(RANDOM_MOOD_TEXTS);
+                return {
+                    summary: mood,
+                    mood,
+                    messageId: `mood-msg-${Date.now()}-${randomInt(1000, 9999)}`
+                };
+            }
+
+            if (eventType === "activity_completed") {
+                return {
+                    content: `完成${randomPick(RANDOM_ACTIVITY_CONTENTS)}`,
+                    duration: randomInt(20, 180)
+                };
+            }
+
+            if (eventType === "activity_recorded") {
+                return {
+                    content: `开始${randomPick(RANDOM_ACTIVITY_CONTENTS)}`
+                };
+            }
+
+            if (eventType === "task_deleted") {
+                return {
+                    content: randomPick(RANDOM_ACTIVITY_CONTENTS)
+                };
+            }
+
+            if (eventType === "idle_detected") {
+                return {
+                    summary: "检测到超过3小时无操作"
+                };
+            }
+
+            if (eventType === "overwork_detected") {
+                return {
+                    summary: "连续工作超过3小时",
+                    duration: randomInt(180, 360)
+                };
+            }
+
+            return {
+                summary: "今日已结束，准备日终复盘"
+            };
+        }
+
+        function buildRandomAnnotationPayload() {
+            const eventType = randomPick(ANNOTATION_EVENT_TYPES);
+            const baseTimestamp = Date.now();
+            const activityCount = randomInt(1, 6);
+            const todayActivitiesList = Array.from({ length: activityCount }, () => buildRandomActivity(baseTimestamp));
+            const todayDuration = todayActivitiesList.reduce((sum, item) => sum + Number(item.duration || 0), 0);
+            const recentMoodMessages = Array.from({ length: randomInt(0, 3) }, () => randomPick(RANDOM_MOOD_TEXTS));
+
+            return {
+                eventType,
+                eventData: buildRandomEventData(eventType),
+                userContext: {
+                    todayActivities: activityCount,
+                    todayDuration,
+                    currentHour: randomInt(0, 23),
+                    recentMoodMessages,
+                    recentAnnotations: [],
+                    todayActivitiesList
+                },
+                lang: "zh"
+            };
+        }
+
+        function buildRandomAnnotationPool(size) {
+            return Array.from({ length: size }, () => buildRandomAnnotationPayload());
+        }
+
+        function loadAnnotationTemplate() {
+            document.getElementById("userMessage").value = JSON.stringify(ANNOTATION_TEMPLATE, null, 2);
+        }
+
+        function loadRandomAnnotationTest() {
+            if (!annotationRandomPool.length) {
+                annotationRandomPool = buildRandomAnnotationPool(50);
+            }
+
+            const payload = randomPick(annotationRandomPool);
+            document.getElementById("userMessage").value = JSON.stringify(payload, null, 2);
+        }
+
+        function init() {
+            loadModelCache();
+            cards = loadCards();
+            if (!cards.length) cards = DEFAULT_CARDS.map(item => normalizeCard(item));
+            annotationRandomPool = buildRandomAnnotationPool(50);
+            renderCards();
+
+            const seeded = cards.find(item => item.apiKey);
+            if (seeded) {
+                refreshModelListForCard(seeded.id, true);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
