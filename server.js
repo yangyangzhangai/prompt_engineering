@@ -19,7 +19,7 @@ const server = http.createServer(async (req, res) => {
     }
     
     // 代理 API 请求
-    if (req.url === '/v1/chat/completions' && req.method === 'POST') {
+    if ((req.url === '/v1/chat/completions' || req.url === '/v1/chat/completions/') && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
@@ -51,7 +51,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/v1/models' && req.method === 'GET') {
+    if ((req.url === '/v1/models' || req.url === '/v1/models/') && req.method === 'GET') {
         const options = {
             hostname: CHUTES_API,
             path: '/v1/models',

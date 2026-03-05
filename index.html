@@ -919,12 +919,15 @@
         }
 
         function deriveModelsUrl(apiUrl) {
-            const raw = String(apiUrl || "").trim();
-            if (!raw) return CHUTES_MODELS_URL;
-            if (raw.includes("/v1/chat/completions")) return raw.replace("/v1/chat/completions", "/v1/models");
+            const input = String(apiUrl || "").trim();
+            if (!input) return CHUTES_MODELS_URL;
+
+            const raw = input.replace(/\/+$/, "");
+            if (raw.includes("/v1/chat/completions")) {
+                return raw.replace("/v1/chat/completions", "/v1/models").replace(/\/+$/, "");
+            }
             if (raw.endsWith("/v1")) return `${raw}/models`;
-            if (raw.endsWith("/v1/")) return `${raw}models`;
-            if (raw.includes("/v1/models")) return raw;
+            if (raw.includes("/v1/models")) return raw.replace(/\/+$/, "");
             return CHUTES_MODELS_URL;
         }
 
