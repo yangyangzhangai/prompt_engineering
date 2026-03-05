@@ -566,8 +566,10 @@
     </div>
 
     <script>
-        const CHUTES_API_URL = "/v1/chat/completions";
-        const CHUTES_MODELS_URL = "/v1/models";
+        const CHUTES_REMOTE_ORIGIN = "https://llm.chutes.ai";
+        const IS_LOCAL_HOST = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+        const CHUTES_API_URL = IS_LOCAL_HOST ? "/v1/chat/completions" : `${CHUTES_REMOTE_ORIGIN}/v1/chat/completions`;
+        const CHUTES_MODELS_URL = IS_LOCAL_HOST ? "/v1/models" : `${CHUTES_REMOTE_ORIGIN}/v1/models`;
         const STORAGE_KEY = "chutes_cards_v3";
         const MODEL_CACHE_KEY = "chutes_models_cache_v1";
         const MODEL_CACHE_TTL_MS = 1000 * 60 * 30;
@@ -931,6 +933,16 @@
             return CHUTES_MODELS_URL;
         }
 
+        function resolveApiUrl(url) {
+            const raw = String(url || "").trim();
+            if (!raw) return raw;
+            if (/^https?:\/\//i.test(raw)) return raw;
+            if (raw.startsWith("/") && !IS_LOCAL_HOST) {
+                return `${CHUTES_REMOTE_ORIGIN}${raw}`;
+            }
+            return raw;
+        }
+
         function loadModelCache() {
             const raw = localStorage.getItem(MODEL_CACHE_KEY);
             if (!raw) return;
@@ -970,7 +982,7 @@
 
         async function refreshModelListForCard(id, silent) {
             const config = collectCardConfig(id);
-            const modelsUrl = deriveModelsUrl(config.apiUrl);
+            const modelsUrl = resolveApiUrl(deriveModelsUrl(config.apiUrl));
             const headers = { "Content-Type": "application/json" };
             if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
 
@@ -1314,7 +1326,8 @@
 
             try {
                 const startedAt = Date.now();
-                const response = await fetch(config.apiUrl, {
+                const requestUrl = resolveApiUrl(config.apiUrl);
+                const response = await fetch(requestUrl, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -1362,7 +1375,7 @@
                     <div class="result-content error">❌ ${escapeHtml(messageText)}${troubleshooting ? `<br><br>💡 ${escapeHtml(troubleshooting)}` : ""}</div>
                     <details class="error-details">
                         <summary>查看请求详情（调试用）</summary>
-                        <pre><strong>URL:</strong> ${escapeHtml(config.apiUrl)}
+                        <pre><strong>URL:</strong> ${escapeHtml(resolveApiUrl(config.apiUrl))}
 <strong>Model:</strong> ${escapeHtml(config.model)}
 <strong>Request:</strong>
 ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
