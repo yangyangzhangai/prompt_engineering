@@ -137,6 +137,38 @@
             align-items: center;
         }
 
+        .random-panel {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(122, 92, 78, 0.2);
+            background: rgba(255, 255, 255, 0.72);
+            display: grid;
+            gap: 10px;
+        }
+
+        .random-controls {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .pool-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pool-meta {
+            font-size: 0.82rem;
+            color: #7a5c52;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(180, 109, 93, 0.1);
+            border: 1px solid rgba(180, 109, 93, 0.18);
+        }
+
         button {
             border: none;
             cursor: pointer;
@@ -451,6 +483,7 @@
             .model-row { grid-template-columns: 1fr; }
             .card-header { align-items: flex-start; }
             .action-row { gap: 8px; }
+            .random-controls { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -476,6 +509,56 @@
                 <button class="btn-soft" onclick="loadRandomAnnotationTest()">随机批注测试</button>
                 <button class="btn-soft" onclick="clearAll()">清空结果</button>
                 <button class="btn-danger" onclick="clearAllStorage()">清除本地配置</button>
+            </div>
+
+            <div class="random-panel">
+                <div class="random-controls">
+                    <div class="field">
+                        <label>心情分类</label>
+                        <select id="randomMood">
+                            <option value="all">全部随机</option>
+                            <option value="happy">开心</option>
+                            <option value="calm">平静</option>
+                            <option value="satisfied">满足</option>
+                            <option value="tired">疲惫</option>
+                            <option value="anxious">焦虑</option>
+                            <option value="confused">迷茫</option>
+                            <option value="irritable">烦躁</option>
+                            <option value="motivated">有干劲</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>身份分类</label>
+                        <select id="randomIdentity">
+                            <option value="all">全部随机</option>
+                            <option value="female_middle_school">中学生（15-18，女性）</option>
+                            <option value="female_college">大学生（18-23，女性）</option>
+                            <option value="female_worker_junior">工作党（22-27，女性）</option>
+                            <option value="female_worker_stable">工作党（28-35，女性）</option>
+                            <option value="male_time_manager_student">男性时间管理型（学生）</option>
+                            <option value="male_time_manager_worker">男性时间管理型（职场）</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>生成数量</label>
+                        <select id="randomPoolSize">
+                            <option value="50">50</option>
+                            <option value="120" selected>120</option>
+                            <option value="300">300</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>测试池 Seed</label>
+                        <input id="randomSeed" type="text" placeholder="留空=按筛选自动生成">
+                    </div>
+                </div>
+                <div class="pool-actions">
+                    <button class="btn-add" onclick="generateRandomAnnotationPool()">生成测试池</button>
+                    <button class="btn-soft" onclick="showPrevRandomAnnotation()">上一条</button>
+                    <button class="btn-soft" onclick="loadRandomAnnotationTest()">下一条</button>
+                    <button class="btn-soft" onclick="showRandomRandomAnnotation()">随机抽取</button>
+                    <span class="pool-meta" id="randomPoolMeta">测试池未生成</span>
+                </div>
             </div>
         </section>
 
@@ -585,32 +668,129 @@
             "day_complete"
         ];
 
-        const RANDOM_ACTIVITY_CONTENTS = [
-            "写方案",
-            "开项目会",
-            "修复登录问题",
-            "整理需求",
-            "做代码评审",
-            "写单测",
-            "更新周报",
-            "处理线上告警",
-            "学习新框架",
-            "规划明日任务"
-        ];
-
-        const RANDOM_MOOD_TEXTS = [
-            "有点焦虑，脑子停不下来",
-            "状态还不错，效率挺高",
-            "今天略疲惫，专注力一般",
-            "心情平稳，可以继续推进",
-            "有点烦躁，想先缓一缓",
-            "灵感很多，想赶紧实现"
-        ];
-
-        const RANDOM_MOOD_LABELS = ["专注", "疲惫", "满足", "平静", "焦虑", "无聊", "有干劲"];
         const RANDOM_ACTIVITY_TYPES = ["work", "study", "meeting", "entertainment", "life"];
+        const BASE_MOOD_LABELS = ["专注", "平静", "满足", "有干劲", "疲惫", "焦虑", "迷茫", "烦躁"];
+
+        const MOOD_PROFILES = {
+            all: {
+                labels: BASE_MOOD_LABELS,
+                moodTexts: ["今天状态有波动，但整体可控"],
+                eventWeights: { mood_recorded: 2, activity_completed: 2, activity_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1, day_complete: 1 }
+            },
+            happy: {
+                labels: ["开心", "轻松", "满足", "有干劲"],
+                moodTexts: ["心情不错，做事很顺", "今天挺开心，推进得很快", "状态在线，处理事情更轻松"],
+                eventWeights: { activity_completed: 4, day_complete: 3, activity_recorded: 2, mood_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1 }
+            },
+            calm: {
+                labels: ["平静", "专注", "稳定", "放松"],
+                moodTexts: ["心情平稳，按节奏推进", "没有太大波动，专注做事", "整体很平静，节奏刚好"],
+                eventWeights: { activity_recorded: 3, day_complete: 3, activity_completed: 2, mood_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1 }
+            },
+            satisfied: {
+                labels: ["满足", "踏实", "平静", "有收获"],
+                moodTexts: ["今天完成度不错，挺满足", "任务有进展，心里踏实", "收尾顺利，状态不错"],
+                eventWeights: { activity_completed: 4, day_complete: 3, mood_recorded: 2, activity_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1 }
+            },
+            tired: {
+                labels: ["疲惫", "困倦", "平静", "专注"],
+                moodTexts: ["今天有点累，但还能推进", "精力一般，先把关键任务做完", "身体有点疲惫，节奏放慢一点"],
+                eventWeights: { mood_recorded: 4, overwork_detected: 3, idle_detected: 2, activity_recorded: 2, activity_completed: 2, task_deleted: 1, day_complete: 1 }
+            },
+            anxious: {
+                labels: ["焦虑", "紧张", "专注", "疲惫"],
+                moodTexts: ["有点焦虑，脑子一直在转", "担心进度，心里有点紧", "事情有点多，心情略焦虑"],
+                eventWeights: { mood_recorded: 5, overwork_detected: 3, idle_detected: 2, activity_recorded: 2, task_deleted: 2, activity_completed: 1, day_complete: 1 }
+            },
+            confused: {
+                labels: ["迷茫", "纠结", "平静", "专注"],
+                moodTexts: ["方向有点不清晰，想先梳理一下", "有点迷茫，需要重新排优先级", "感觉选择太多，先稳住节奏"],
+                eventWeights: { mood_recorded: 4, idle_detected: 3, task_deleted: 2, activity_recorded: 2, overwork_detected: 2, activity_completed: 1, day_complete: 1 }
+            },
+            irritable: {
+                labels: ["烦躁", "疲惫", "焦虑", "专注"],
+                moodTexts: ["今天有点烦躁，先整理思路", "被打断几次后有点烦", "节奏被拖慢，情绪有点急"],
+                eventWeights: { mood_recorded: 4, task_deleted: 3, overwork_detected: 2, activity_recorded: 2, idle_detected: 2, activity_completed: 1, day_complete: 1 }
+            },
+            motivated: {
+                labels: ["有干劲", "专注", "满足", "开心"],
+                moodTexts: ["今天很有干劲，想把关键任务推进完", "状态挺好，执行力在线", "想趁着手感好再多完成一点"],
+                eventWeights: { activity_completed: 4, activity_recorded: 3, day_complete: 2, mood_recorded: 2, overwork_detected: 1, idle_detected: 1, task_deleted: 1 }
+            }
+        };
+
+        const IDENTITY_PROFILES = {
+            female_middle_school: {
+                label: "中学生（15-18，女性）",
+                currentHourRange: [18, 22],
+                activityMap: {
+                    study: ["上课听讲", "完成作业", "晚自习复习", "背英语单词", "整理错题本"],
+                    life: ["吃晚饭", "洗漱收拾", "和家人聊天", "准备第二天书包"],
+                    entertainment: ["刷短视频", "听歌放松", "看一会综艺"],
+                    meeting: ["小组讨论作业"],
+                    work: ["班级事务整理"]
+                }
+            },
+            female_college: {
+                label: "大学生（18-23，女性）",
+                currentHourRange: [19, 24],
+                activityMap: {
+                    study: ["上专业课", "图书馆自习", "写课程作业", "准备小组汇报", "复习考试内容"],
+                    life: ["食堂吃饭", "宿舍整理", "校园通勤", "洗漱休息"],
+                    entertainment: ["刷社交媒体", "看剧放松", "散步放空"],
+                    meeting: ["社团例会", "课程小组讨论"],
+                    work: ["实习资料整理"]
+                }
+            },
+            female_worker_junior: {
+                label: "工作党（22-27，女性）",
+                currentHourRange: [18, 23],
+                activityMap: {
+                    work: ["整理日报", "更新任务看板", "跟进需求进度", "处理邮件", "完善文档"],
+                    meeting: ["项目例会", "跨部门对齐", "需求评审"],
+                    life: ["通勤", "吃饭", "收拾房间", "准备明日安排"],
+                    entertainment: ["刷短视频", "听播客", "轻度运动"],
+                    study: ["学习行业资料", "补充办公技巧"]
+                }
+            },
+            female_worker_stable: {
+                label: "工作党（28-35，女性）",
+                currentHourRange: [19, 23],
+                activityMap: {
+                    work: ["推进重点项目", "处理客户反馈", "整理周计划", "复盘当日任务", "更新流程文档"],
+                    meeting: ["部门周会", "项目沟通会", "协作同步会"],
+                    life: ["通勤", "做晚饭", "家庭事务处理", "晚间放松"],
+                    entertainment: ["轻阅读", "散步", "看一集剧"],
+                    study: ["学习管理方法", "阅读行业动态"]
+                }
+            },
+            male_time_manager_student: {
+                label: "男性时间管理型（学生）",
+                currentHourRange: [19, 24],
+                activityMap: {
+                    study: ["按番茄钟学习", "复习课程重点", "整理待办清单", "完成阶段作业", "制定明日计划"],
+                    life: ["晚饭", "校园通勤", "洗漱休息"],
+                    entertainment: ["短时游戏", "刷资讯", "听音乐放松"],
+                    meeting: ["课程小组讨论"],
+                    work: ["兼职资料整理"]
+                }
+            },
+            male_time_manager_worker: {
+                label: "男性时间管理型（职场）",
+                currentHourRange: [18, 23],
+                activityMap: {
+                    work: ["分时段处理待办", "更新优先级清单", "推进关键事项", "整理工作台账", "输出复盘记录"],
+                    meeting: ["项目同步会", "业务沟通会", "周计划评审"],
+                    life: ["通勤", "晚饭", "家务整理", "准备次日安排"],
+                    entertainment: ["散步", "看视频放松", "轻运动"],
+                    study: ["学习新工具功能", "阅读行业文章"]
+                }
+            }
+        };
 
         let annotationRandomPool = [];
+        let annotationPoolCursor = -1;
+        let activePoolSeed = "";
 
         let cards = [];
 
@@ -1224,52 +1404,163 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             alert("已清除，恢复为默认 3 个模型卡片。");
         }
 
-        function randomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
+        function hashString(input) {
+            let hash = 2166136261;
+            const text = String(input || "");
+            for (let i = 0; i < text.length; i += 1) {
+                hash ^= text.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return hash >>> 0;
         }
 
-        function randomPick(list) {
-            if (!Array.isArray(list) || list.length === 0) return "";
-            return list[randomInt(0, list.length - 1)];
-        }
-
-        function buildRandomActivity(baseTimestamp) {
-            return {
-                content: randomPick(RANDOM_ACTIVITY_CONTENTS),
-                duration: randomInt(10, 140),
-                activityType: randomPick(RANDOM_ACTIVITY_TYPES),
-                moodLabel: randomPick(RANDOM_MOOD_LABELS),
-                timestamp: baseTimestamp - randomInt(0, 8 * 60) * 60 * 1000,
-                completed: Math.random() > 0.3
+        function createSeededRandom(seedText) {
+            let seed = hashString(seedText || "annotation-seed") || 1;
+            return function nextRandom() {
+                seed += 0x6d2b79f5;
+                let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+                t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
             };
         }
 
-        function buildRandomEventData(eventType) {
+        function randomIntFrom(rng, min, max) {
+            return Math.floor(rng() * (max - min + 1)) + min;
+        }
+
+        function randomPickFrom(rng, list) {
+            if (!Array.isArray(list) || list.length === 0) return "";
+            return list[randomIntFrom(rng, 0, list.length - 1)];
+        }
+
+        function weightedPick(rng, weightedMap) {
+            const entries = Object.entries(weightedMap || {}).filter(([, weight]) => Number(weight) > 0);
+            if (!entries.length) return "mood_recorded";
+            const total = entries.reduce((sum, [, weight]) => sum + Number(weight), 0);
+            let point = rng() * total;
+            for (let i = 0; i < entries.length; i += 1) {
+                point -= Number(entries[i][1]);
+                if (point <= 0) return entries[i][0];
+            }
+            return entries[entries.length - 1][0];
+        }
+
+        function pickIdentityKey(inputKey, rng) {
+            if (inputKey && inputKey !== "all" && IDENTITY_PROFILES[inputKey]) return inputKey;
+            const keys = Object.keys(IDENTITY_PROFILES);
+            return randomPickFrom(rng, keys);
+        }
+
+        function pickMoodKey(inputKey, rng) {
+            if (inputKey && inputKey !== "all" && MOOD_PROFILES[inputKey]) return inputKey;
+            const keys = Object.keys(MOOD_PROFILES).filter(item => item !== "all");
+            return randomPickFrom(rng, keys);
+        }
+
+        function normalizeHour(hour) {
+            if (hour <= 23) return hour;
+            return hour - 24;
+        }
+
+        function buildPoolSeed(filters) {
+            const customSeed = String(filters.seed || "").trim();
+            if (customSeed) return customSeed;
+            return `pool-v2|mood:${filters.mood}|identity:${filters.identity}|size:${filters.size}`;
+        }
+
+        function pickCurrentHour(profile, rng) {
+            const minHour = Number(profile?.currentHourRange?.[0] ?? 18);
+            const maxHour = Number(profile?.currentHourRange?.[1] ?? 22);
+            return normalizeHour(randomIntFrom(rng, minHour, maxHour));
+        }
+
+        function pickActivityType(rng, identityKey) {
+            const isStudent = identityKey.includes("student") || identityKey.includes("school") || identityKey.includes("college");
+            const weights = isStudent
+                ? { study: 5, life: 3, entertainment: 2, meeting: 1, work: 1 }
+                : { work: 5, meeting: 3, life: 3, entertainment: 2, study: 1 };
+            return weightedPick(rng, weights);
+        }
+
+        function pickMoodLabel(rng, moodProfile, isLatest) {
+            const fallback = BASE_MOOD_LABELS;
+            if (isLatest) return randomPickFrom(rng, moodProfile.labels || fallback);
+            const mixed = [...fallback, "专注", "平静", "满足", "有干劲", "疲惫"];
+            return randomPickFrom(rng, mixed);
+        }
+
+        function buildMoodMessage(rng, moodProfile, identityKey, isLatest) {
+            const baseText = randomPickFrom(rng, moodProfile.moodTexts || ["今天状态正常"]);
+            if (!isLatest) {
+                const generic = ["上午效率一般", "中午有些分心", "下午逐渐进入状态", "晚上准备收尾" ];
+                return randomPickFrom(rng, generic);
+            }
+
+            if (identityKey.includes("worker")) {
+                const workerPrefix = ["下班前", "开完会后", "处理完关键事项后", "收尾阶段"]; 
+                return `${randomPickFrom(rng, workerPrefix)}${baseText}`;
+            }
+
+            const studentPrefix = ["自习后", "课后", "晚间学习时", "复习阶段"]; 
+            return `${randomPickFrom(rng, studentPrefix)}${baseText}`;
+        }
+
+        function buildRandomActivities(rng, identityKey, moodProfile, currentTimestamp) {
+            const profile = IDENTITY_PROFILES[identityKey] || IDENTITY_PROFILES.female_worker_junior;
+            const activityCount = randomIntFrom(rng, 3, 8);
+            const activities = [];
+            let cursor = currentTimestamp - randomIntFrom(rng, 15, 50) * 60 * 1000;
+
+            for (let i = 0; i < activityCount; i += 1) {
+                const isLatest = i === 0;
+                const activityType = pickActivityType(rng, identityKey);
+                const contents = profile.activityMap[activityType] || profile.activityMap.life || ["日常安排"];
+                const content = randomPickFrom(rng, contents);
+                const duration = activityType === "meeting" ? randomIntFrom(rng, 30, 90) : randomIntFrom(rng, 20, 120);
+                const completed = isLatest ? rng() > 0.45 : rng() > 0.18;
+
+                activities.push({
+                    content,
+                    duration,
+                    activityType: RANDOM_ACTIVITY_TYPES.includes(activityType) ? activityType : "life",
+                    moodLabel: pickMoodLabel(rng, moodProfile, isLatest),
+                    timestamp: cursor,
+                    completed
+                });
+
+                cursor -= (duration + randomIntFrom(rng, 10, 85)) * 60 * 1000;
+            }
+
+            return activities.reverse();
+        }
+
+        function buildRandomEventData(eventType, latestMoodMessage, activities, rng, poolSeed, index) {
+            const latestActivity = activities[activities.length - 1] || { content: "整理任务", duration: 30 };
+
             if (eventType === "mood_recorded") {
-                const mood = randomPick(RANDOM_MOOD_TEXTS);
                 return {
-                    summary: mood,
-                    mood,
-                    messageId: `mood-msg-${Date.now()}-${randomInt(1000, 9999)}`
+                    summary: latestMoodMessage,
+                    mood: latestMoodMessage,
+                    messageId: `mood-msg-${hashString(`${poolSeed}-${index}`)}-${randomIntFrom(rng, 1000, 9999)}`
                 };
             }
 
             if (eventType === "activity_completed") {
                 return {
-                    content: `完成${randomPick(RANDOM_ACTIVITY_CONTENTS)}`,
-                    duration: randomInt(20, 180)
+                    content: `完成${latestActivity.content}`,
+                    duration: Number(latestActivity.duration || randomIntFrom(rng, 20, 120))
                 };
             }
 
             if (eventType === "activity_recorded") {
                 return {
-                    content: `开始${randomPick(RANDOM_ACTIVITY_CONTENTS)}`
+                    content: `开始${latestActivity.content}`
                 };
             }
 
             if (eventType === "task_deleted") {
                 return {
-                    content: randomPick(RANDOM_ACTIVITY_CONTENTS)
+                    content: latestActivity.content
                 };
             }
 
@@ -1282,7 +1573,7 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             if (eventType === "overwork_detected") {
                 return {
                     summary: "连续工作超过3小时",
-                    duration: randomInt(180, 360)
+                    duration: randomIntFrom(rng, 180, 360)
                 };
             }
 
@@ -1291,21 +1582,35 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             };
         }
 
-        function buildRandomAnnotationPayload() {
-            const eventType = randomPick(ANNOTATION_EVENT_TYPES);
-            const baseTimestamp = Date.now();
-            const activityCount = randomInt(1, 6);
-            const todayActivitiesList = Array.from({ length: activityCount }, () => buildRandomActivity(baseTimestamp));
+        function buildRandomAnnotationPayload(params) {
+            const { rng, mood, identity, poolSeed, index } = params;
+            const moodKey = pickMoodKey(mood, rng);
+            const identityKey = pickIdentityKey(identity, rng);
+            const moodProfile = MOOD_PROFILES[moodKey] || MOOD_PROFILES.all;
+            const identityProfile = IDENTITY_PROFILES[identityKey] || IDENTITY_PROFILES.female_worker_junior;
+            const currentHour = pickCurrentHour(identityProfile, rng);
+            const dayOffset = hashString(`${poolSeed}-${index}`) % 120;
+            const minute = randomIntFrom(rng, 0, 59);
+            const dayStartTimestamp = Date.UTC(2026, 0, 1) + dayOffset * 24 * 60 * 60 * 1000;
+            const currentTimestamp = dayStartTimestamp + currentHour * 60 * 60 * 1000 + minute * 60 * 1000;
+
+            const todayActivitiesList = buildRandomActivities(rng, identityKey, moodProfile, currentTimestamp);
             const todayDuration = todayActivitiesList.reduce((sum, item) => sum + Number(item.duration || 0), 0);
-            const recentMoodMessages = Array.from({ length: randomInt(0, 3) }, () => randomPick(RANDOM_MOOD_TEXTS));
+            const recentMoodCount = randomIntFrom(rng, 1, 3);
+            const recentMoodMessages = Array.from({ length: recentMoodCount }, (_, idx) => {
+                const isLatest = idx === recentMoodCount - 1;
+                return buildMoodMessage(rng, moodProfile, identityKey, isLatest);
+            });
+            const latestMoodMessage = recentMoodMessages[recentMoodMessages.length - 1] || buildMoodMessage(rng, moodProfile, identityKey, true);
+            const eventType = weightedPick(rng, moodProfile.eventWeights || MOOD_PROFILES.all.eventWeights);
 
             return {
                 eventType,
-                eventData: buildRandomEventData(eventType),
+                eventData: buildRandomEventData(eventType, latestMoodMessage, todayActivitiesList, rng, poolSeed, index),
                 userContext: {
-                    todayActivities: activityCount,
+                    todayActivities: todayActivitiesList.length,
                     todayDuration,
-                    currentHour: randomInt(0, 23),
+                    currentHour,
                     recentMoodMessages,
                     recentAnnotations: [],
                     todayActivitiesList
@@ -1314,29 +1619,95 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             };
         }
 
-        function buildRandomAnnotationPool(size) {
-            return Array.from({ length: size }, () => buildRandomAnnotationPayload());
+        function buildRandomAnnotationPool(size, filters) {
+            const safeSize = Math.max(1, Number(size) || 1);
+            const poolSeed = buildPoolSeed(filters);
+            const rng = createSeededRandom(poolSeed);
+            return {
+                poolSeed,
+                items: Array.from({ length: safeSize }, (_, index) =>
+                    buildRandomAnnotationPayload({
+                        rng,
+                        mood: filters.mood,
+                        identity: filters.identity,
+                        poolSeed,
+                        index
+                    })
+                )
+            };
         }
 
         function loadAnnotationTemplate() {
             document.getElementById("userMessage").value = JSON.stringify(ANNOTATION_TEMPLATE, null, 2);
         }
 
+        function readRandomFilters() {
+            const mood = document.getElementById("randomMood")?.value || "all";
+            const identity = document.getElementById("randomIdentity")?.value || "all";
+            const size = Number(document.getElementById("randomPoolSize")?.value || 120);
+            const seed = document.getElementById("randomSeed")?.value || "";
+            return { mood, identity, size, seed };
+        }
+
+        function updateRandomPoolMeta() {
+            const meta = document.getElementById("randomPoolMeta");
+            if (!meta) return;
+            if (!annotationRandomPool.length) {
+                meta.textContent = "测试池未生成";
+                return;
+            }
+            meta.textContent = `池 ${annotationPoolCursor + 1}/${annotationRandomPool.length} | Seed ${activePoolSeed}`;
+        }
+
+        function showRandomAnnotationByIndex(index) {
+            if (!annotationRandomPool.length) return;
+            const safeIndex = ((index % annotationRandomPool.length) + annotationRandomPool.length) % annotationRandomPool.length;
+            annotationPoolCursor = safeIndex;
+            document.getElementById("userMessage").value = JSON.stringify(annotationRandomPool[safeIndex], null, 2);
+            updateRandomPoolMeta();
+        }
+
+        function generateRandomAnnotationPool() {
+            const filters = readRandomFilters();
+            const result = buildRandomAnnotationPool(filters.size, filters);
+            annotationRandomPool = result.items;
+            activePoolSeed = result.poolSeed;
+            annotationPoolCursor = 0;
+            showRandomAnnotationByIndex(0);
+        }
+
         function loadRandomAnnotationTest() {
             if (!annotationRandomPool.length) {
-                annotationRandomPool = buildRandomAnnotationPool(50);
+                generateRandomAnnotationPool();
+                return;
             }
+            showRandomAnnotationByIndex(annotationPoolCursor + 1);
+        }
 
-            const payload = randomPick(annotationRandomPool);
-            document.getElementById("userMessage").value = JSON.stringify(payload, null, 2);
+        function showPrevRandomAnnotation() {
+            if (!annotationRandomPool.length) {
+                generateRandomAnnotationPool();
+                return;
+            }
+            showRandomAnnotationByIndex(annotationPoolCursor - 1);
+        }
+
+        function showRandomRandomAnnotation() {
+            if (!annotationRandomPool.length) {
+                generateRandomAnnotationPool();
+                return;
+            }
+            const rng = createSeededRandom(`${activePoolSeed}-jump-${annotationPoolCursor}`);
+            const randomIndex = randomIntFrom(rng, 0, annotationRandomPool.length - 1);
+            showRandomAnnotationByIndex(randomIndex);
         }
 
         function init() {
             loadModelCache();
             cards = loadCards();
             if (!cards.length) cards = DEFAULT_CARDS.map(item => normalizeCard(item));
-            annotationRandomPool = buildRandomAnnotationPool(50);
             renderCards();
+            generateRandomAnnotationPool();
 
             const seeded = cards.find(item => item.apiKey);
             if (seeded) {
