@@ -635,37 +635,33 @@
         const ANNOTATION_TEMPLATE = {
             eventType: "mood_recorded",
             eventData: {
-                summary: "我有点焦虑，脑子转不停",
-                mood: "我有点焦虑，脑子转不停",
-                messageId: "mood-msg-001"
+                messageId: "msg_mood_22",
+                mood: "有点焦虑，担心今晚交付来不及"
             },
             userContext: {
-                todayActivities: 4,
-                todayDuration: 210,
-                currentHour: 21,
-                recentMoodMessages: [
-                    "下午有点烦躁",
-                    "开完会有点累",
-                    "我有点焦虑，脑子转不停"
+                todayActivities: 3,
+                todayDuration: 120,
+                currentHour: 23,
+                recentAnnotations: [
+                    "你在压力里仍然保持了方向感 🧭"
                 ],
-                recentAnnotations: [],
+                recentMoodMessages: [
+                    "今天效率不高",
+                    "越晚越紧张",
+                    "有点焦虑，担心今晚交付来不及"
+                ],
                 todayActivitiesList: [
-                    { content: "写方案", duration: 90, activityType: "work", moodLabel: "专注", timestamp: 1710000000000, completed: true },
-                    { content: "开项目会", duration: 60, activityType: "work", moodLabel: "疲惫", timestamp: 1710003600000, completed: true },
-                    { content: "刷短视频", duration: 30, activityType: "entertainment", moodLabel: "无聊", timestamp: 1710007200000, completed: false }
+                    { content: "需求评审", duration: 40, activityType: "work", moodLabel: "紧张", timestamp: 1741132800000, completed: true },
+                    { content: "实现导出功能", duration: 80, activityType: "work", moodLabel: "焦虑", timestamp: 1741137600000, completed: true }
                 ]
             },
             lang: "zh"
         };
 
         const ANNOTATION_EVENT_TYPES = [
-            "activity_completed",
             "activity_recorded",
             "mood_recorded",
-            "task_deleted",
-            "idle_detected",
-            "overwork_detected",
-            "day_complete"
+            "task_deleted"
         ];
 
         const RANDOM_ACTIVITY_TYPES = ["work", "study", "meeting", "entertainment", "life"];
@@ -675,47 +671,47 @@
             all: {
                 labels: BASE_MOOD_LABELS,
                 moodTexts: ["今天状态有波动，但整体可控"],
-                eventWeights: { mood_recorded: 2, activity_completed: 2, activity_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1, day_complete: 1 }
+                eventWeights: { mood_recorded: 3, activity_recorded: 3, task_deleted: 2 }
             },
             happy: {
                 labels: ["开心", "轻松", "满足", "有干劲"],
                 moodTexts: ["心情不错，做事很顺", "今天挺开心，推进得很快", "状态在线，处理事情更轻松"],
-                eventWeights: { activity_completed: 4, day_complete: 3, activity_recorded: 2, mood_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1 }
+                eventWeights: { activity_recorded: 4, mood_recorded: 2, task_deleted: 1 }
             },
             calm: {
                 labels: ["平静", "专注", "稳定", "放松"],
                 moodTexts: ["心情平稳，按节奏推进", "没有太大波动，专注做事", "整体很平静，节奏刚好"],
-                eventWeights: { activity_recorded: 3, day_complete: 3, activity_completed: 2, mood_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1 }
+                eventWeights: { activity_recorded: 4, mood_recorded: 2, task_deleted: 1 }
             },
             satisfied: {
                 labels: ["满足", "踏实", "平静", "有收获"],
                 moodTexts: ["今天完成度不错，挺满足", "任务有进展，心里踏实", "收尾顺利，状态不错"],
-                eventWeights: { activity_completed: 4, day_complete: 3, mood_recorded: 2, activity_recorded: 2, task_deleted: 1, idle_detected: 1, overwork_detected: 1 }
+                eventWeights: { activity_recorded: 3, mood_recorded: 3, task_deleted: 1 }
             },
             tired: {
                 labels: ["疲惫", "困倦", "平静", "专注"],
                 moodTexts: ["今天有点累，但还能推进", "精力一般，先把关键任务做完", "身体有点疲惫，节奏放慢一点"],
-                eventWeights: { mood_recorded: 4, overwork_detected: 3, idle_detected: 2, activity_recorded: 2, activity_completed: 2, task_deleted: 1, day_complete: 1 }
+                eventWeights: { mood_recorded: 5, activity_recorded: 2, task_deleted: 2 }
             },
             anxious: {
                 labels: ["焦虑", "紧张", "专注", "疲惫"],
                 moodTexts: ["有点焦虑，脑子一直在转", "担心进度，心里有点紧", "事情有点多，心情略焦虑"],
-                eventWeights: { mood_recorded: 5, overwork_detected: 3, idle_detected: 2, activity_recorded: 2, task_deleted: 2, activity_completed: 1, day_complete: 1 }
+                eventWeights: { mood_recorded: 6, activity_recorded: 2, task_deleted: 3 }
             },
             confused: {
                 labels: ["迷茫", "纠结", "平静", "专注"],
                 moodTexts: ["方向有点不清晰，想先梳理一下", "有点迷茫，需要重新排优先级", "感觉选择太多，先稳住节奏"],
-                eventWeights: { mood_recorded: 4, idle_detected: 3, task_deleted: 2, activity_recorded: 2, overwork_detected: 2, activity_completed: 1, day_complete: 1 }
+                eventWeights: { mood_recorded: 5, task_deleted: 3, activity_recorded: 2 }
             },
             irritable: {
                 labels: ["烦躁", "疲惫", "焦虑", "专注"],
                 moodTexts: ["今天有点烦躁，先整理思路", "被打断几次后有点烦", "节奏被拖慢，情绪有点急"],
-                eventWeights: { mood_recorded: 4, task_deleted: 3, overwork_detected: 2, activity_recorded: 2, idle_detected: 2, activity_completed: 1, day_complete: 1 }
+                eventWeights: { mood_recorded: 5, task_deleted: 4, activity_recorded: 2 }
             },
             motivated: {
                 labels: ["有干劲", "专注", "满足", "开心"],
                 moodTexts: ["今天很有干劲，想把关键任务推进完", "状态挺好，执行力在线", "想趁着手感好再多完成一点"],
-                eventWeights: { activity_completed: 4, activity_recorded: 3, day_complete: 2, mood_recorded: 2, overwork_detected: 1, idle_detected: 1, task_deleted: 1 }
+                eventWeights: { activity_recorded: 5, mood_recorded: 2, task_deleted: 1 }
             }
         };
 
@@ -1539,22 +1535,17 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
 
             if (eventType === "mood_recorded") {
                 return {
-                    summary: latestMoodMessage,
-                    mood: latestMoodMessage,
-                    messageId: `mood-msg-${hashString(`${poolSeed}-${index}`)}-${randomIntFrom(rng, 1000, 9999)}`
-                };
-            }
-
-            if (eventType === "activity_completed") {
-                return {
-                    content: `完成${latestActivity.content}`,
-                    duration: Number(latestActivity.duration || randomIntFrom(rng, 20, 120))
+                    messageId: `msg_mood_${hashString(`${poolSeed}-${index}`)}`,
+                    mood: latestMoodMessage
                 };
             }
 
             if (eventType === "activity_recorded") {
                 return {
-                    content: `开始${latestActivity.content}`
+                    messageId: `msg_activity_${hashString(`${poolSeed}-${index}`)}`,
+                    content: latestActivity.content,
+                    activityType: latestActivity.activityType || "work",
+                    duration: Number(latestActivity.duration || randomIntFrom(rng, 20, 120))
                 };
             }
 
@@ -1564,21 +1555,8 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
                 };
             }
 
-            if (eventType === "idle_detected") {
-                return {
-                    summary: "检测到超过3小时无操作"
-                };
-            }
-
-            if (eventType === "overwork_detected") {
-                return {
-                    summary: "连续工作超过3小时",
-                    duration: randomIntFrom(rng, 180, 360)
-                };
-            }
-
             return {
-                summary: "今日已结束，准备日终复盘"
+                content: latestActivity.content
             };
         }
 
