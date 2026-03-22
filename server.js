@@ -4,13 +4,13 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 3000;
-const CHUTES_API = 'llm.chutes.ai';
+const OPENAI_API = 'api.openai.com';
 
 const server = http.createServer(async (req, res) => {
     // 设置 CORS 头
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -24,13 +24,12 @@ const server = http.createServer(async (req, res) => {
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
             const options = {
-                hostname: CHUTES_API,
+                hostname: OPENAI_API,
                 path: '/v1/chat/completions',
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': req.headers['authorization'] || '',
-                    'X-API-Key': req.headers['x-api-key'] || ''
+                    'Authorization': req.headers['authorization'] || ''
                 }
             };
             
@@ -53,12 +52,11 @@ const server = http.createServer(async (req, res) => {
 
     if ((req.url === '/v1/models' || req.url === '/v1/models/') && req.method === 'GET') {
         const options = {
-            hostname: CHUTES_API,
+            hostname: OPENAI_API,
             path: '/v1/models',
             method: 'GET',
             headers: {
-                'Authorization': req.headers['authorization'] || '',
-                'X-API-Key': req.headers['x-api-key'] || ''
+                'Authorization': req.headers['authorization'] || ''
             }
         };
 
@@ -78,7 +76,7 @@ const server = http.createServer(async (req, res) => {
     }
     
     // 静态文件服务
-    let filePath = req.url === '/' ? '/prompt-debugger.html' : req.url;
+    let filePath = req.url === '/' ? '/index.html' : req.url;
     filePath = path.join(__dirname, filePath);
     
     const ext = path.extname(filePath).toLowerCase();

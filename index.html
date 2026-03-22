@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chutes Prompt Atelier</title>
+    <title>OpenAI Prompt Atelier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -490,14 +490,14 @@
 <body>
     <div class="container">
         <div class="hero">
-            <h1>Chutes Prompt Atelier</h1>
-            <p>默认 3 个模型并行，可随手新增模型卡片，边调试边对比。</p>
+            <h1>OpenAI Prompt Atelier</h1>
+            <p>默认 6 个模型并行（3 个 GPT-4o Mini + 3 个 GPT-4.1 Mini），可随手新增模型卡片，边调试边对比。</p>
         </div>
 
         <section class="panel composer">
             <div class="composer-top">
                 <h2>写下你的 Prompt</h2>
-                <span id="cardCount" class="count-badge">当前 3 个模型</span>
+                <span id="cardCount" class="count-badge">当前 6 个模型</span>
             </div>
 
             <textarea id="userMessage" class="message-input" placeholder="在这里输入你的消息，点击发送后会并行请求所有卡片..."></textarea>
@@ -566,30 +566,20 @@
     </div>
 
     <script>
-        const CHUTES_REMOTE_ORIGIN = "https://llm.chutes.ai";
+        const CHUTES_REMOTE_ORIGIN = "https://api.openai.com";
         const IS_LOCAL_HOST = ["localhost", "127.0.0.1"].includes(window.location.hostname);
         const CHUTES_API_URL = IS_LOCAL_HOST ? "/v1/chat/completions" : `${CHUTES_REMOTE_ORIGIN}/v1/chat/completions`;
         const CHUTES_MODELS_URL = IS_LOCAL_HOST ? "/v1/models" : `${CHUTES_REMOTE_ORIGIN}/v1/models`;
-        const STORAGE_KEY = "chutes_cards_v3";
-        const MODEL_CACHE_KEY = "chutes_models_cache_v1";
+        const STORAGE_KEY = "openai_cards_v4";
+        const MODEL_CACHE_KEY = "openai_models_cache_v2";
         const MODEL_CACHE_TTL_MS = 1000 * 60 * 30;
 
         const FALLBACK_MODELS = [
-            { value: "Qwen/Qwen3-32B", label: "Qwen3 32B" },
-            { value: "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE", label: "Qwen3 235B Instruct 2507 TEE" },
-            { value: "Qwen/Qwen3-235B-A22B-Thinking-2507", label: "Qwen3 235B Thinking 2507" },
-            { value: "Qwen/Qwen3-Coder-Next-TEE", label: "Qwen3 Coder Next TEE" },
-            { value: "Qwen/Qwen2.5-72B-Instruct", label: "Qwen2.5 72B Instruct" },
-            { value: "Qwen/Qwen2.5-Coder-32B-Instruct", label: "Qwen2.5 Coder 32B" },
-            { value: "deepseek-ai/DeepSeek-V3.2-TEE", label: "DeepSeek V3.2 TEE" },
-            { value: "deepseek-ai/DeepSeek-R1-0528-TEE", label: "DeepSeek R1 0528 TEE" },
-            { value: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", label: "DeepSeek R1 Distill 70B" },
-            { value: "NousResearch/Hermes-4-405B-FP8-TEE", label: "Hermes 4 405B FP8 TEE" },
-            { value: "moonshotai/Kimi-K2.5-TEE", label: "Kimi K2.5 TEE" },
-            { value: "openai/gpt-oss-120b-TEE", label: "GPT OSS 120B TEE" },
-            { value: "zai-org/GLM-5-TEE", label: "GLM-5 TEE" },
-            { value: "zai-org/GLM-4.7-TEE", label: "GLM-4.7 TEE" },
-            { value: "MiniMaxAI/MiniMax-M2.5-TEE", label: "MiniMax M2.5 TEE" },
+            { value: "gpt-4.1", label: "GPT-4.1" },
+            { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+            { value: "gpt-4o", label: "GPT-4o" },
+            { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+            { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
             { value: "custom", label: "手动输入模型..." }
         ];
 
@@ -597,10 +587,10 @@
 
         const DEFAULT_CARDS = [
             {
-                name: "Qwen3 对照",
+                name: "GPT-4o Mini A",
                 apiUrl: CHUTES_API_URL,
                 apiKey: "",
-                model: "Qwen/Qwen3-32B",
+                model: "gpt-4o-mini",
                 temperature: 0.7,
                 topP: 1,
                 topK: "",
@@ -609,10 +599,10 @@
                 systemPrompt: "你是一个有帮助的助手。"
             },
             {
-                name: "DeepSeek 对照",
+                name: "GPT-4o Mini B",
                 apiUrl: CHUTES_API_URL,
                 apiKey: "",
-                model: "deepseek-ai/DeepSeek-V3.2-TEE",
+                model: "gpt-4o-mini",
                 temperature: 0.7,
                 topP: 1,
                 topK: "",
@@ -621,10 +611,46 @@
                 systemPrompt: "你是一个有帮助的助手。"
             },
             {
-                name: "Hermes 对照",
+                name: "GPT-4o Mini C",
                 apiUrl: CHUTES_API_URL,
                 apiKey: "",
-                model: "NousResearch/Hermes-4-405B-FP8-TEE",
+                model: "gpt-4o-mini",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            },
+            {
+                name: "GPT-4.1 Mini A",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "gpt-4.1-mini",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            },
+            {
+                name: "GPT-4.1 Mini B",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "gpt-4.1-mini",
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            },
+            {
+                name: "GPT-4.1 Mini C",
+                apiUrl: CHUTES_API_URL,
+                apiKey: "",
+                model: "gpt-4.1-mini",
                 temperature: 0.7,
                 topP: 1,
                 topK: "",
@@ -803,7 +829,7 @@
                 name: "新模型",
                 apiUrl: CHUTES_API_URL,
                 apiKey: "",
-                model: "Qwen/Qwen3-32B",
+                model: "gpt-4.1",
                 temperature: 0.7,
                 topP: 1,
                 topK: "",
@@ -840,9 +866,6 @@
                 }
             }
 
-            const legacy = migrateLegacyConfigs();
-            if (legacy.length > 0) return legacy.map(normalizeCard);
-
             return DEFAULT_CARDS.map(item => normalizeCard(item));
         }
 
@@ -858,7 +881,7 @@
                             name: parsed.name || `模型 ${i}`,
                             apiUrl: parsed.apiUrl || CHUTES_API_URL,
                             apiKey: parsed.apiKey || localStorage.getItem(`chutes_api_key_${i}`) || "",
-                            model: parsed.model || "Qwen/Qwen3-32B",
+                            model: parsed.model || "gpt-4.1",
                             temperature: Number(parsed.temperature ?? 0.7),
                             topP: Number(parsed.topP ?? 1),
                             topK: parsed.topK ?? "",
@@ -941,6 +964,11 @@
                 return `${CHUTES_REMOTE_ORIGIN}${raw}`;
             }
             return raw;
+        }
+
+        function isOpenAIEndpoint(url) {
+            const resolved = resolveApiUrl(url).toLowerCase();
+            return resolved.includes("api.openai.com") || resolved.startsWith("/v1/");
         }
 
         function loadModelCache() {
@@ -1052,11 +1080,11 @@
                             </div>
                             <div class="field">
                                 <label>API 地址</label>
-                                <input type="text" id="url-${card.id}" value="${escapeHtml(card.apiUrl)}" placeholder="https://llm.chutes.ai/v1/chat/completions">
+                                <input type="text" id="url-${card.id}" value="${escapeHtml(card.apiUrl)}" placeholder="https://api.openai.com/v1/chat/completions">
                             </div>
                             <div class="field">
                                 <label>API Key</label>
-                                <input type="password" id="key-${card.id}" value="${escapeHtml(card.apiKey)}" placeholder="在 chutes.ai 获取 API Key">
+                                <input type="password" id="key-${card.id}" value="${escapeHtml(card.apiKey)}" placeholder="在 OpenAI 控制台获取 API Key">
                                 <div class="saved-indicator" id="saved-${card.id}">${card.apiKey ? "💾 本地已保存" : ""}</div>
                             </div>
 
@@ -1313,14 +1341,19 @@
                 ],
                 temperature: config.temperature,
                 top_p: config.topP,
-                max_tokens: config.maxTokens,
                 stream: false
             };
 
-            if (config.topK !== "" && !Number.isNaN(Number(config.topK))) {
+            if (isOpenAIEndpoint(config.apiUrl)) {
+                requestBody.max_completion_tokens = config.maxTokens;
+            } else {
+                requestBody.max_tokens = config.maxTokens;
+            }
+
+            if (!isOpenAIEndpoint(config.apiUrl) && config.topK !== "" && !Number.isNaN(Number(config.topK))) {
                 requestBody.top_k = Number(config.topK);
             }
-            if (config.seed !== "" && !Number.isNaN(Number(config.seed))) {
+            if (!isOpenAIEndpoint(config.apiUrl) && config.seed !== "" && !Number.isNaN(Number(config.seed))) {
                 requestBody.seed = Number(config.seed);
             }
 
@@ -1413,7 +1446,7 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
 
             cards = DEFAULT_CARDS.map(item => normalizeCard(item));
             renderCards();
-            alert("已清除，恢复为默认 3 个模型卡片。");
+            alert("已清除，恢复为默认 6 个模型卡片。");
         }
 
         function hashString(input) {
