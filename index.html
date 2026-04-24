@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI Prompt Atelier</title>
+    <title>Prompt Atelier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -106,6 +106,26 @@
             font-size: 0.82rem;
             border: 1px solid rgba(180, 109, 93, 0.22);
         }
+
+        .composer-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .btn-top {
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(93, 73, 64, 0.11);
+            color: #5c453d;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid rgba(122, 92, 78, 0.22);
+        }
+
+        .btn-top:hover { background: rgba(93, 73, 64, 0.18); }
 
         .message-input {
             width: 100%;
@@ -285,6 +305,14 @@
 
         .icon-btn:hover { background: rgba(184, 73, 73, 0.2); }
 
+        .icon-btn.copy {
+            background: rgba(47, 122, 98, 0.14);
+            color: #2f7a62;
+            margin-right: 4px;
+        }
+
+        .icon-btn.copy:hover { background: rgba(47, 122, 98, 0.24); }
+
         .card-body {
             padding: 14px;
             display: flex;
@@ -391,6 +419,111 @@
             min-height: 17px;
         }
 
+        .history-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(59, 35, 28, 0.28);
+            z-index: 90;
+            display: none;
+        }
+
+        .history-backdrop.show { display: block; }
+
+        .history-drawer {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: min(520px, calc(100vw - 32px));
+            max-height: calc(100vh - 32px);
+            overflow: hidden;
+            z-index: 100;
+            border-radius: 16px;
+            border: 1px solid rgba(123, 92, 74, 0.22);
+            background: rgba(255, 251, 248, 0.98);
+            box-shadow: 0 20px 50px rgba(66, 39, 31, 0.24);
+            transform: translateY(-10px);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .history-drawer.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .history-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(123, 92, 74, 0.18);
+            background: linear-gradient(120deg, rgba(248, 236, 225, 0.95), rgba(244, 224, 215, 0.88));
+        }
+
+        .history-head h3 {
+            font-size: 0.95rem;
+            color: #5a4037;
+        }
+
+        .history-body {
+            padding: 12px;
+            display: grid;
+            gap: 12px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .history-block {
+            border: 1px solid rgba(123, 92, 74, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .history-title {
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            color: #6a4f47;
+            border-bottom: 1px solid rgba(123, 92, 74, 0.14);
+            background: rgba(247, 238, 230, 0.75);
+        }
+
+        .history-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            border-bottom: 1px dashed rgba(123, 92, 74, 0.17);
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            color: #5a443b;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .history-item:last-child { border-bottom: none; }
+
+        .history-time {
+            display: block;
+            font-size: 0.72rem;
+            color: #8b7166;
+            margin-bottom: 4px;
+        }
+
+        .history-empty {
+            padding: 12px;
+            color: #8a7368;
+            font-size: 0.8rem;
+        }
+
         .result-section {
             border: 1px solid rgba(122, 92, 78, 0.2);
             border-radius: 12px;
@@ -484,20 +617,30 @@
             .card-header { align-items: flex-start; }
             .action-row { gap: 8px; }
             .random-controls { grid-template-columns: 1fr; }
+            .history-drawer {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+                max-height: calc(100vh - 20px);
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="hero">
-            <h1>OpenAI Prompt Atelier</h1>
-            <p>默认 6 个模型并行（3 个 GPT-4o Mini + 3 个 GPT-4.1 Mini），可随手新增模型卡片，边调试边对比。</p>
+            <h1>Prompt Atelier</h1>
+            <p>支持 OpenAI / DeepSeek 双供应商并行对比，可按卡片切换供应商、模型与参数，边调试边对照。</p>
         </div>
 
         <section class="panel composer">
             <div class="composer-top">
                 <h2>写下你的 Prompt</h2>
-                <span id="cardCount" class="count-badge">当前 6 个模型</span>
+                <div class="composer-tools">
+                    <button class="btn-top" onclick="togglePromptHistory(true)">价格历史</button>
+                    <span id="cardCount" class="count-badge">当前 6 个模型</span>
+                </div>
             </div>
 
             <textarea id="userMessage" class="message-input" placeholder="在这里输入你的消息，点击发送后会并行请求所有卡片..."></textarea>
@@ -563,102 +706,131 @@
         </section>
 
         <div class="results-grid" id="resultsGrid"></div>
+
+        <div class="history-backdrop" id="historyBackdrop" onclick="togglePromptHistory(false)"></div>
+        <aside class="history-drawer" id="historyDrawer" aria-hidden="true">
+            <div class="history-head">
+                <h3>价格历史记录（提示词）</h3>
+                <button class="btn-soft" style="padding:6px 10px" onclick="togglePromptHistory(false)">关闭</button>
+            </div>
+            <div class="history-body">
+                <div class="history-block">
+                    <div class="history-title" id="userHistoryTitle">用户提示词历史</div>
+                    <ul class="history-list" id="userPromptHistoryList"></ul>
+                    <div class="history-empty" id="userPromptHistoryEmpty">暂无记录</div>
+                </div>
+                <div class="history-block">
+                    <div class="history-title" id="systemHistoryTitle">系统提示词历史</div>
+                    <ul class="history-list" id="systemPromptHistoryList"></ul>
+                    <div class="history-empty" id="systemPromptHistoryEmpty">暂无记录</div>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <script>
-        const CHUTES_REMOTE_ORIGIN = "https://api.openai.com";
         const IS_LOCAL_HOST = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-        const CHUTES_API_URL = IS_LOCAL_HOST ? "/v1/chat/completions" : `${CHUTES_REMOTE_ORIGIN}/v1/chat/completions`;
-        const CHUTES_MODELS_URL = IS_LOCAL_HOST ? "/v1/models" : `${CHUTES_REMOTE_ORIGIN}/v1/models`;
-        const STORAGE_KEY = "openai_cards_v4";
-        const MODEL_CACHE_KEY = "openai_models_cache_v2";
+        const STORAGE_KEY = "openai_cards_v5";
+        const LEGACY_STORAGE_KEY = "openai_cards_v4";
+        const MODEL_CACHE_KEY = "provider_models_cache_v1";
         const MODEL_CACHE_TTL_MS = 1000 * 60 * 30;
+        const PROVIDER_KEYS_STORAGE_KEY = "provider_keys_v1";
+        const PROMPT_HISTORY_KEY = "price_prompt_history_v1";
 
-        const FALLBACK_MODELS = [
-            { value: "gpt-4.1", label: "GPT-4.1" },
-            { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
-            { value: "gpt-4o", label: "GPT-4o" },
-            { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-            { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-            { value: "custom", label: "手动输入模型..." }
-        ];
-
-        let CHUTES_MODELS = [...FALLBACK_MODELS];
-
-        const DEFAULT_CARDS = [
-            {
-                name: "GPT-4o Mini A",
-                apiUrl: CHUTES_API_URL,
-                apiKey: "",
-                model: "gpt-4o-mini",
-                temperature: 0.7,
-                topP: 1,
-                topK: "",
-                seed: "",
-                maxTokens: 2048,
-                systemPrompt: "你是一个有帮助的助手。"
+        const PROVIDER_META = {
+            openai: {
+                label: "OpenAI (GPT)",
+                remoteOrigin: "https://api.openai.com",
+                localChatPath: "/v1/chat/completions",
+                localModelsPath: "/v1/models"
             },
-            {
-                name: "GPT-4o Mini B",
-                apiUrl: CHUTES_API_URL,
-                apiKey: "",
-                model: "gpt-4o-mini",
-                temperature: 0.7,
-                topP: 1,
-                topK: "",
-                seed: "",
-                maxTokens: 2048,
-                systemPrompt: "你是一个有帮助的助手。"
-            },
-            {
-                name: "GPT-4o Mini C",
-                apiUrl: CHUTES_API_URL,
-                apiKey: "",
-                model: "gpt-4o-mini",
-                temperature: 0.7,
-                topP: 1,
-                topK: "",
-                seed: "",
-                maxTokens: 2048,
-                systemPrompt: "你是一个有帮助的助手。"
-            },
-            {
-                name: "GPT-4.1 Mini A",
-                apiUrl: CHUTES_API_URL,
-                apiKey: "",
-                model: "gpt-4.1-mini",
-                temperature: 0.7,
-                topP: 1,
-                topK: "",
-                seed: "",
-                maxTokens: 2048,
-                systemPrompt: "你是一个有帮助的助手。"
-            },
-            {
-                name: "GPT-4.1 Mini B",
-                apiUrl: CHUTES_API_URL,
-                apiKey: "",
-                model: "gpt-4.1-mini",
-                temperature: 0.7,
-                topP: 1,
-                topK: "",
-                seed: "",
-                maxTokens: 2048,
-                systemPrompt: "你是一个有帮助的助手。"
-            },
-            {
-                name: "GPT-4.1 Mini C",
-                apiUrl: CHUTES_API_URL,
-                apiKey: "",
-                model: "gpt-4.1-mini",
-                temperature: 0.7,
-                topP: 1,
-                topK: "",
-                seed: "",
-                maxTokens: 2048,
-                systemPrompt: "你是一个有帮助的助手。"
+            deepseek: {
+                label: "DeepSeek",
+                remoteOrigin: "https://api.deepseek.com",
+                localChatPath: "/deepseek/v1/chat/completions",
+                localModelsPath: "/deepseek/v1/models"
             }
-        ];
+        };
+
+        const FALLBACK_MODELS_BY_PROVIDER = {
+            openai: [
+                { value: "gpt-4.1", label: "GPT-4.1" },
+                { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+                { value: "gpt-4o", label: "GPT-4o" },
+                { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+                { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+                { value: "custom", label: "手动输入模型..." }
+            ],
+            deepseek: [
+                { value: "deepseek-chat", label: "DeepSeek Chat" },
+                { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
+                { value: "custom", label: "手动输入模型..." }
+            ]
+        };
+
+        let providerModels = {
+            openai: [...FALLBACK_MODELS_BY_PROVIDER.openai],
+            deepseek: [...FALLBACK_MODELS_BY_PROVIDER.deepseek]
+        };
+
+        let providerKeys = {
+            openai: "",
+            deepseek: ""
+        };
+
+        const promptHistory = {
+            user: [],
+            system: [],
+            comboHashes: []
+        };
+
+        function getProviderLabel(provider) {
+            return PROVIDER_META[provider]?.label || "未知供应商";
+        }
+
+        function getProviderChatUrl(provider) {
+            const safeProvider = PROVIDER_META[provider] ? provider : "openai";
+            const meta = PROVIDER_META[safeProvider];
+            return IS_LOCAL_HOST ? meta.localChatPath : `${meta.remoteOrigin}/v1/chat/completions`;
+        }
+
+        function getProviderModelsUrl(provider) {
+            const safeProvider = PROVIDER_META[provider] ? provider : "openai";
+            const meta = PROVIDER_META[safeProvider];
+            return IS_LOCAL_HOST ? meta.localModelsPath : `${meta.remoteOrigin}/v1/models`;
+        }
+
+        function inferProviderFromApiUrl(apiUrl) {
+            const raw = String(apiUrl || "").toLowerCase();
+            if (!raw) return "openai";
+            if (raw.includes("deepseek") || raw.includes("/deepseek/")) return "deepseek";
+            return "openai";
+        }
+
+        function createDefaultCards() {
+            return [
+                { name: "GPT-4o Mini A", provider: "openai", model: "gpt-4o-mini" },
+                { name: "GPT-4o Mini B", provider: "openai", model: "gpt-4o-mini" },
+                { name: "GPT-4o Mini C", provider: "openai", model: "gpt-4o-mini" },
+                { name: "GPT-4.1 Mini A", provider: "openai", model: "gpt-4.1-mini" },
+                { name: "GPT-4.1 Mini B", provider: "openai", model: "gpt-4.1-mini" },
+                { name: "GPT-4.1 Mini C", provider: "openai", model: "gpt-4.1-mini" }
+            ].map(item => ({
+                name: item.name,
+                provider: item.provider,
+                apiUrl: getProviderChatUrl(item.provider),
+                apiKey: "",
+                model: item.model,
+                temperature: 0.7,
+                topP: 1,
+                topK: "",
+                seed: "",
+                maxTokens: 2048,
+                systemPrompt: "你是一个有帮助的助手。"
+            }));
+        }
+
+        const DEFAULT_CARDS = createDefaultCards();
 
         const ANNOTATION_TEMPLATE = {
             eventType: "mood_recorded",
@@ -827,7 +999,8 @@
         function defaultCardTemplate() {
             return {
                 name: "新模型",
-                apiUrl: CHUTES_API_URL,
+                provider: "openai",
+                apiUrl: getProviderChatUrl("openai"),
                 apiKey: "",
                 model: "gpt-4.1",
                 temperature: 0.7,
@@ -846,18 +1019,22 @@
         function normalizeCard(card) {
             const safe = { ...defaultCardTemplate(), ...card };
             if (!safe.id) safe.id = createCardId();
-            if (!safe.apiUrl) safe.apiUrl = CHUTES_API_URL;
+            safe.provider = PROVIDER_META[safe.provider] ? safe.provider : inferProviderFromApiUrl(safe.apiUrl);
+            if (!safe.apiUrl) safe.apiUrl = getProviderChatUrl(safe.provider);
             if (Number.isNaN(Number(safe.temperature))) safe.temperature = 0.7;
             if (Number.isNaN(Number(safe.topP))) safe.topP = 1;
             if (!safe.maxTokens || Number.isNaN(Number(safe.maxTokens))) safe.maxTokens = 2048;
+            if (!safe.apiKey && providerKeys[safe.provider]) safe.apiKey = providerKeys[safe.provider];
             return safe;
         }
 
         function loadCards() {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
+            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+            const source = raw || legacyRaw;
+            if (source) {
                 try {
-                    const parsed = JSON.parse(raw);
+                    const parsed = JSON.parse(source);
                     if (Array.isArray(parsed) && parsed.length > 0) {
                         return parsed.map(normalizeCard);
                     }
@@ -879,7 +1056,8 @@
                         migrated.push({
                             id: createCardId(),
                             name: parsed.name || `模型 ${i}`,
-                            apiUrl: parsed.apiUrl || CHUTES_API_URL,
+                            provider: inferProviderFromApiUrl(parsed.apiUrl),
+                            apiUrl: parsed.apiUrl || getProviderChatUrl("openai"),
                             apiKey: parsed.apiKey || localStorage.getItem(`chutes_api_key_${i}`) || "",
                             model: parsed.model || "gpt-4.1",
                             temperature: Number(parsed.temperature ?? 0.7),
@@ -901,13 +1079,64 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
         }
 
+        function loadProviderKeys() {
+            const raw = localStorage.getItem(PROVIDER_KEYS_STORAGE_KEY);
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                providerKeys = {
+                    openai: String(parsed?.openai || ""),
+                    deepseek: String(parsed?.deepseek || "")
+                };
+            } catch (err) {
+                console.error("读取供应商 API Key 失败:", err);
+            }
+        }
+
+        function saveProviderKeys() {
+            localStorage.setItem(PROVIDER_KEYS_STORAGE_KEY, JSON.stringify(providerKeys));
+        }
+
+        function hydrateProviderKeysFromCards() {
+            cards.forEach(card => {
+                const provider = PROVIDER_META[card.provider] ? card.provider : "openai";
+                if (!providerKeys[provider] && card.apiKey) {
+                    providerKeys[provider] = String(card.apiKey);
+                }
+            });
+            saveProviderKeys();
+        }
+
+        function loadPromptHistory() {
+            const raw = localStorage.getItem(PROMPT_HISTORY_KEY);
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                promptHistory.user = Array.isArray(parsed?.user) ? parsed.user : [];
+                promptHistory.system = Array.isArray(parsed?.system) ? parsed.system : [];
+                promptHistory.comboHashes = Array.isArray(parsed?.comboHashes) ? parsed.comboHashes : [];
+            } catch (err) {
+                console.error("读取提示词历史失败:", err);
+            }
+        }
+
+        function savePromptHistory() {
+            localStorage.setItem(PROMPT_HISTORY_KEY, JSON.stringify(promptHistory));
+        }
+
         function updateTopMeta() {
             document.getElementById("cardCount").textContent = `当前 ${cards.length} 个模型`;
             document.getElementById("sendBtn").textContent = cards.length > 0 ? `发送到全部 ${cards.length} 个模型` : "发送到全部模型";
         }
 
-        function createModelOptions(selectedModel) {
-            return CHUTES_MODELS
+        function getModelsForProvider(provider) {
+            const safeProvider = PROVIDER_META[provider] ? provider : "openai";
+            const list = providerModels[safeProvider];
+            return Array.isArray(list) && list.length ? list : FALLBACK_MODELS_BY_PROVIDER[safeProvider];
+        }
+
+        function createModelOptions(provider, selectedModel) {
+            return getModelsForProvider(provider)
                 .map(item => `<option value="${item.value}" ${item.value === selectedModel ? "selected" : ""}>${item.label}</option>`)
                 .join("");
         }
@@ -917,7 +1146,7 @@
             return parts.length > 1 ? parts[1] : String(modelId || "");
         }
 
-        function toModelOptionsFromApi(responseData) {
+        function toModelOptionsFromApi(provider, responseData) {
             const list = Array.isArray(responseData?.data) ? responseData.data : [];
             const dynamic = list
                 .map(item => String(item?.id || "").trim())
@@ -925,7 +1154,7 @@
                 .map(id => ({ value: id, label: buildLabelFromModelId(id) }));
 
             const map = new Map();
-            [...dynamic, ...FALLBACK_MODELS].forEach(item => {
+            [...dynamic, ...getModelsForProvider(provider)].forEach(item => {
                 if (!item || !item.value || item.value === "custom") return;
                 if (!map.has(item.value)) map.set(item.value, item.label || item.value);
             });
@@ -943,32 +1172,19 @@
             if (tip) tip.textContent = text || "";
         }
 
-        function deriveModelsUrl(apiUrl) {
-            const input = String(apiUrl || "").trim();
-            if (!input) return CHUTES_MODELS_URL;
-
-            const raw = input.replace(/\/+$/, "");
-            if (raw.includes("/v1/chat/completions")) {
-                return raw.replace("/v1/chat/completions", "/v1/models").replace(/\/+$/, "");
-            }
-            if (raw.endsWith("/v1")) return `${raw}/models`;
-            if (raw.includes("/v1/models")) return raw.replace(/\/+$/, "");
-            return CHUTES_MODELS_URL;
-        }
-
-        function resolveApiUrl(url) {
+        function resolveApiUrl(url, provider) {
             const raw = String(url || "").trim();
             if (!raw) return raw;
             if (/^https?:\/\//i.test(raw)) return raw;
             if (raw.startsWith("/") && !IS_LOCAL_HOST) {
-                return `${CHUTES_REMOTE_ORIGIN}${raw}`;
+                const safeProvider = PROVIDER_META[provider] ? provider : "openai";
+                return `${PROVIDER_META[safeProvider].remoteOrigin}${raw}`;
             }
             return raw;
         }
 
-        function isOpenAIEndpoint(url) {
-            const resolved = resolveApiUrl(url).toLowerCase();
-            return resolved.includes("api.openai.com") || resolved.startsWith("/v1/");
+        function isOpenAIProvider(provider) {
+            return provider !== "deepseek";
         }
 
         function loadModelCache() {
@@ -976,31 +1192,50 @@
             if (!raw) return;
             try {
                 const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed.models) || !parsed.ts) return;
+                if (!parsed.ts) return;
                 if (Date.now() - Number(parsed.ts) > MODEL_CACHE_TTL_MS) return;
-                CHUTES_MODELS = parsed.models;
+                if (Array.isArray(parsed.models)) {
+                    providerModels.openai = parsed.models;
+                    return;
+                }
+                if (parsed.modelsByProvider && typeof parsed.modelsByProvider === "object") {
+                    if (Array.isArray(parsed.modelsByProvider.openai) && parsed.modelsByProvider.openai.length) {
+                        providerModels.openai = parsed.modelsByProvider.openai;
+                    }
+                    if (Array.isArray(parsed.modelsByProvider.deepseek) && parsed.modelsByProvider.deepseek.length) {
+                        providerModels.deepseek = parsed.modelsByProvider.deepseek;
+                    }
+                }
             } catch (err) {
                 console.error("读取模型缓存失败:", err);
             }
         }
 
-        function saveModelCache(models) {
-            localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify({ ts: Date.now(), models }));
+        function saveModelCache() {
+            localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify({
+                ts: Date.now(),
+                modelsByProvider: providerModels
+            }));
         }
 
         function applyModelOptionsToCard(id, keepValue) {
             const select = document.getElementById(`model-select-${id}`);
             const customInput = document.getElementById(`model-custom-${id}`);
-            if (!select || !customInput) return;
+            const providerSelect = document.getElementById(`provider-${id}`);
+            if (!select || !customInput || !providerSelect) return;
+
+            const provider = providerSelect.value;
 
             const before = keepValue || getSelectedModel(id);
-            const known = isKnownModel(before);
+            const known = isKnownModel(provider, before);
             const selected = known ? before : "custom";
 
-            select.innerHTML = createModelOptions(selected);
+            select.innerHTML = createModelOptions(provider, selected);
             if (!known) {
                 customInput.classList.remove("hidden");
                 customInput.value = before;
+            } else {
+                customInput.classList.add("hidden");
             }
         }
 
@@ -1010,9 +1245,10 @@
 
         async function refreshModelListForCard(id, silent) {
             const config = collectCardConfig(id);
-            const modelsUrl = resolveApiUrl(deriveModelsUrl(config.apiUrl));
+            const modelsUrl = resolveApiUrl(getProviderModelsUrl(config.provider), config.provider);
             const headers = { "Content-Type": "application/json" };
-            if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
+            const providerKey = config.apiKey || providerKeys[config.provider] || "";
+            if (providerKey) headers.Authorization = `Bearer ${providerKey}`;
 
             setModelStatus(id, silent ? "" : "刷新模型中...");
 
@@ -1023,13 +1259,13 @@
                 }
 
                 const data = await response.json();
-                const models = toModelOptionsFromApi(data);
+                const models = toModelOptionsFromApi(config.provider, data);
                 if (!models.length) {
                     throw new Error("模型列表为空");
                 }
 
-                CHUTES_MODELS = models;
-                saveModelCache(models);
+                providerModels[config.provider] = models;
+                saveModelCache();
                 applyModelOptionsToAllCards();
                 setModelStatus(id, `已同步 ${models.length - 1} 个模型`);
                 setTimeout(() => setModelStatus(id, ""), 2400);
@@ -1041,8 +1277,8 @@
             }
         }
 
-        function isKnownModel(model) {
-            return CHUTES_MODELS.some(item => item.value === model && item.value !== "custom");
+        function isKnownModel(provider, model) {
+            return getModelsForProvider(provider).some(item => item.value === model && item.value !== "custom");
         }
 
         function resultPlaceholder() {
@@ -1050,7 +1286,8 @@
         }
 
         function createCardEl(card) {
-            const isCustomVisible = !isKnownModel(card.model);
+            const safeProvider = PROVIDER_META[card.provider] ? card.provider : "openai";
+            const isCustomVisible = !isKnownModel(safeProvider, card.model);
             const selectedModel = isCustomVisible ? "custom" : card.model;
 
             const el = document.createElement("div");
@@ -1063,7 +1300,10 @@
                         <h3 id="title-${card.id}">${escapeHtml(card.name)}</h3>
                     </div>
                     <span class="card-status ready" id="status-${card.id}">就绪</span>
-                    <button class="icon-btn" onclick="removeModelCard('${card.id}')" title="删除该卡片" ${cards.length <= 1 ? "style=\"display:none\"" : ""}>×</button>
+                    <div style="display:flex; align-items:center;">
+                        <button class="icon-btn copy" onclick="duplicateModelCard('${card.id}')" title="复制该卡片">⧉</button>
+                        <button class="icon-btn" onclick="removeModelCard('${card.id}')" title="删除该卡片" ${cards.length <= 1 ? "style=\"display:none\"" : ""}>×</button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="config-section">
@@ -1079,19 +1319,26 @@
                                 <input type="text" id="name-${card.id}" value="${escapeHtml(card.name)}" placeholder="给这个模型起个名字" oninput="handleNameInput('${card.id}')">
                             </div>
                             <div class="field">
+                                <label>供应商</label>
+                                <select id="provider-${card.id}" onchange="handleProviderChange('${card.id}')">
+                                    <option value="openai" ${safeProvider === "openai" ? "selected" : ""}>OpenAI (GPT)</option>
+                                    <option value="deepseek" ${safeProvider === "deepseek" ? "selected" : ""}>DeepSeek</option>
+                                </select>
+                            </div>
+                            <div class="field">
                                 <label>API 地址</label>
                                 <input type="text" id="url-${card.id}" value="${escapeHtml(card.apiUrl)}" placeholder="https://api.openai.com/v1/chat/completions">
                             </div>
                             <div class="field">
                                 <label>API Key</label>
-                                <input type="password" id="key-${card.id}" value="${escapeHtml(card.apiKey)}" placeholder="在 OpenAI 控制台获取 API Key">
-                                <div class="saved-indicator" id="saved-${card.id}">${card.apiKey ? "💾 本地已保存" : ""}</div>
+                                <input type="password" id="key-${card.id}" value="${escapeHtml(providerKeys[safeProvider] || card.apiKey || "")}" placeholder="会按供应商分别保存并自动切换">
+                                <div class="saved-indicator" id="saved-${card.id}">${providerKeys[safeProvider] || card.apiKey ? `💾 ${getProviderLabel(safeProvider)} Key 已保存` : ""}</div>
                             </div>
 
                             <div class="field">
                                 <label>模型</label>
                                 <div class="model-row">
-                                    <select id="model-select-${card.id}" onchange="handleModelChange('${card.id}')">${createModelOptions(selectedModel)}</select>
+                                    <select id="model-select-${card.id}" onchange="handleModelChange('${card.id}')">${createModelOptions(safeProvider, selectedModel)}</select>
                                     <button type="button" class="btn-soft" onclick="refreshModelListForCard('${card.id}')">刷新模型</button>
                                 </div>
                                 <input type="text" id="model-custom-${card.id}" class="model-custom ${isCustomVisible ? "" : "hidden"}" value="${escapeHtml(card.model)}" placeholder="如: meta-llama/Llama-3.3-70B-Instruct" oninput="handleCustomModelInput('${card.id}')">
@@ -1202,6 +1449,27 @@
             syncDisplayNameWithModel(id);
         }
 
+        function updateKeyIndicator(id, provider, keyValue) {
+            const saved = document.getElementById(`saved-${id}`);
+            if (!saved) return;
+            saved.textContent = keyValue ? `💾 ${getProviderLabel(provider)} Key 已保存` : "";
+        }
+
+        function handleProviderChange(id) {
+            const providerSelect = document.getElementById(`provider-${id}`);
+            const urlInput = document.getElementById(`url-${id}`);
+            const keyInput = document.getElementById(`key-${id}`);
+            if (!providerSelect || !urlInput || !keyInput) return;
+
+            const provider = PROVIDER_META[providerSelect.value] ? providerSelect.value : "openai";
+            urlInput.value = getProviderChatUrl(provider);
+            keyInput.value = providerKeys[provider] || "";
+            updateKeyIndicator(id, provider, keyInput.value.trim());
+
+            applyModelOptionsToCard(id);
+            syncDisplayNameWithModel(id);
+        }
+
         function handleCustomModelInput(id) {
             const select = document.getElementById(`model-select-${id}`);
             if (select) select.value = "custom";
@@ -1233,10 +1501,12 @@
         function collectCardConfig(id) {
             const topKRaw = document.getElementById(`topk-${id}`).value.trim();
             const seedRaw = document.getElementById(`seed-${id}`).value.trim();
+            const provider = document.getElementById(`provider-${id}`).value || "openai";
             return {
                 id,
                 name: document.getElementById(`name-${id}`).value.trim() || "未命名模型",
-                apiUrl: document.getElementById(`url-${id}`).value.trim() || CHUTES_API_URL,
+                provider,
+                apiUrl: document.getElementById(`url-${id}`).value.trim() || getProviderChatUrl(provider),
                 apiKey: document.getElementById(`key-${id}`).value.trim(),
                 model: getSelectedModel(id),
                 temperature: Number(document.getElementById(`temp-${id}`).value || 0.7),
@@ -1256,6 +1526,9 @@
                 return;
             }
 
+            providerKeys[config.provider] = config.apiKey || "";
+            saveProviderKeys();
+
             cards = cards.map(item => item.id === id ? normalizeCard(config) : item);
             saveCards();
 
@@ -1269,7 +1542,7 @@
 
             const saved = document.getElementById(`saved-${id}`);
             if (saved) {
-                saved.textContent = config.apiKey ? "💾 本地已保存" : "";
+                saved.textContent = config.apiKey ? `💾 ${getProviderLabel(config.provider)} Key 已保存` : "";
             }
 
             handleNameInput(id);
@@ -1280,6 +1553,20 @@
             const base = normalizeCard(defaultCardTemplate());
             base.name = `新模型 ${cards.length + 1}`;
             cards.push(base);
+            saveCards();
+            renderCards();
+        }
+
+        function duplicateModelCard(id) {
+            const source = collectCardConfig(id);
+            const cloneName = source.name ? `${source.name} 副本` : `新模型 ${cards.length + 1}`;
+            const cloned = normalizeCard({
+                ...source,
+                id: createCardId(),
+                name: cloneName
+            });
+
+            cards.push(cloned);
             saveCards();
             renderCards();
         }
@@ -1302,8 +1589,16 @@
             btn.disabled = true;
             btn.textContent = "发送中...";
 
-            cards = cards.map(item => normalizeCard(collectCardConfig(item.id)));
+            cards = cards.map(item => {
+                const config = normalizeCard(collectCardConfig(item.id));
+                providerKeys[config.provider] = config.apiKey || "";
+                return config;
+            });
+            saveProviderKeys();
             saveCards();
+
+            trackPromptHistory(message, cards);
+            renderPromptHistory();
 
             await Promise.all(cards.map(card => sendToModel(card.id, message)));
             updateTopMeta();
@@ -1312,10 +1607,11 @@
 
         async function sendToModel(id, message) {
             const config = collectCardConfig(id);
+            const effectiveApiKey = config.apiKey || providerKeys[config.provider] || "";
             const resultDiv = document.getElementById(`result-${id}`);
             const statusSpan = document.getElementById(`status-${id}`);
 
-            if (!config.apiKey) {
+            if (!effectiveApiKey) {
                 resultDiv.innerHTML = "<div class=\"result-content error\">⚠️ 未配置 API Key，请先在配置里填写后再发送。</div>";
                 statusSpan.className = "card-status error";
                 statusSpan.textContent = "未配置";
@@ -1344,27 +1640,27 @@
                 stream: false
             };
 
-            if (isOpenAIEndpoint(config.apiUrl)) {
+            if (isOpenAIProvider(config.provider)) {
                 requestBody.max_completion_tokens = config.maxTokens;
             } else {
                 requestBody.max_tokens = config.maxTokens;
             }
 
-            if (!isOpenAIEndpoint(config.apiUrl) && config.topK !== "" && !Number.isNaN(Number(config.topK))) {
+            if (!isOpenAIProvider(config.provider) && config.topK !== "" && !Number.isNaN(Number(config.topK))) {
                 requestBody.top_k = Number(config.topK);
             }
-            if (!isOpenAIEndpoint(config.apiUrl) && config.seed !== "" && !Number.isNaN(Number(config.seed))) {
+            if (!isOpenAIProvider(config.provider) && config.seed !== "" && !Number.isNaN(Number(config.seed))) {
                 requestBody.seed = Number(config.seed);
             }
 
             try {
                 const startedAt = Date.now();
-                const requestUrl = resolveApiUrl(config.apiUrl);
+                const requestUrl = resolveApiUrl(config.apiUrl || getProviderChatUrl(config.provider), config.provider);
                 const response = await fetch(requestUrl, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${config.apiKey}`
+                        "Authorization": `Bearer ${effectiveApiKey}`
                     },
                     body: JSON.stringify(requestBody)
                 });
@@ -1408,7 +1704,8 @@
                     <div class="result-content error">❌ ${escapeHtml(messageText)}${troubleshooting ? `<br><br>💡 ${escapeHtml(troubleshooting)}` : ""}</div>
                     <details class="error-details">
                         <summary>查看请求详情（调试用）</summary>
-                        <pre><strong>URL:</strong> ${escapeHtml(resolveApiUrl(config.apiUrl))}
+                        <pre><strong>Provider:</strong> ${escapeHtml(getProviderLabel(config.provider))}
+<strong>URL:</strong> ${escapeHtml(resolveApiUrl(config.apiUrl || getProviderChatUrl(config.provider), config.provider))}
 <strong>Model:</strong> ${escapeHtml(config.model)}
 <strong>Request:</strong>
 ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
@@ -1438,15 +1735,90 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             if (!ok) return;
 
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(LEGACY_STORAGE_KEY);
             localStorage.removeItem(MODEL_CACHE_KEY);
+            localStorage.removeItem(PROVIDER_KEYS_STORAGE_KEY);
+            localStorage.removeItem(PROMPT_HISTORY_KEY);
             for (let i = 1; i <= 6; i += 1) {
                 localStorage.removeItem(`chutes_config_${i}`);
                 localStorage.removeItem(`chutes_api_key_${i}`);
             }
 
+            providerKeys = { openai: "", deepseek: "" };
+            promptHistory.user = [];
+            promptHistory.system = [];
+            promptHistory.comboHashes = [];
             cards = DEFAULT_CARDS.map(item => normalizeCard(item));
             renderCards();
+            renderPromptHistory();
             alert("已清除，恢复为默认 6 个模型卡片。");
+        }
+
+        function formatTime(ts) {
+            return new Date(Number(ts || Date.now())).toLocaleString("zh-CN", { hour12: false });
+        }
+
+        function pushUniquePrompt(historyList, text) {
+            const normalized = String(text || "").trim();
+            if (!normalized) return;
+            if (historyList.some(item => item.text === normalized)) return;
+            historyList.unshift({ text: normalized, ts: Date.now() });
+            if (historyList.length > 120) historyList.length = 120;
+        }
+
+        function renderHistoryList(listElId, emptyElId, records) {
+            const listEl = document.getElementById(listElId);
+            const emptyEl = document.getElementById(emptyElId);
+            if (!listEl || !emptyEl) return;
+
+            listEl.innerHTML = records
+                .map(item => `<li class="history-item"><span class="history-time">${escapeHtml(formatTime(item.ts))}</span>${escapeHtml(item.text)}</li>`)
+                .join("");
+
+            const hasData = records.length > 0;
+            emptyEl.style.display = hasData ? "none" : "block";
+            listEl.style.display = hasData ? "block" : "none";
+        }
+
+        function renderPromptHistory() {
+            renderHistoryList("userPromptHistoryList", "userPromptHistoryEmpty", promptHistory.user);
+            renderHistoryList("systemPromptHistoryList", "systemPromptHistoryEmpty", promptHistory.system);
+            const userTitle = document.getElementById("userHistoryTitle");
+            const systemTitle = document.getElementById("systemHistoryTitle");
+            if (userTitle) userTitle.textContent = `用户提示词历史（${promptHistory.user.length}）`;
+            if (systemTitle) systemTitle.textContent = `系统提示词历史（${promptHistory.system.length}）`;
+        }
+
+        function togglePromptHistory(show) {
+            const drawer = document.getElementById("historyDrawer");
+            const backdrop = document.getElementById("historyBackdrop");
+            if (!drawer || !backdrop) return;
+
+            const shouldShow = typeof show === "boolean" ? show : !drawer.classList.contains("show");
+            drawer.classList.toggle("show", shouldShow);
+            backdrop.classList.toggle("show", shouldShow);
+            drawer.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+            if (shouldShow) renderPromptHistory();
+        }
+
+        function trackPromptHistory(userMessage, cardConfigs) {
+            const userText = String(userMessage || "").trim();
+            const systemTexts = Array.from(new Set((cardConfigs || [])
+                .map(item => String(item.systemPrompt || "").trim())
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b))));
+
+            const comboPayload = JSON.stringify({ userText, systemTexts });
+            const comboHash = String(hashString(comboPayload));
+            if (promptHistory.comboHashes.includes(comboHash)) {
+                return;
+            }
+
+            promptHistory.comboHashes.unshift(comboHash);
+            if (promptHistory.comboHashes.length > 400) promptHistory.comboHashes.length = 400;
+            pushUniquePrompt(promptHistory.user, userText);
+            systemTexts.forEach(text => pushUniquePrompt(promptHistory.system, text));
+            savePromptHistory();
         }
 
         function hashString(input) {
@@ -1730,13 +2102,25 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
         }
 
         function init() {
+            loadProviderKeys();
             loadModelCache();
+            loadPromptHistory();
             cards = loadCards();
+            if (!cards.length) {
+                const migrated = migrateLegacyConfigs();
+                cards = migrated.length ? migrated.map(normalizeCard) : [];
+            }
             if (!cards.length) cards = DEFAULT_CARDS.map(item => normalizeCard(item));
+            hydrateProviderKeysFromCards();
             renderCards();
+            renderPromptHistory();
             generateRandomAnnotationPool();
 
-            const seeded = cards.find(item => item.apiKey);
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") togglePromptHistory(false);
+            });
+
+            const seeded = cards.find(item => providerKeys[item.provider]);
             if (seeded) {
                 refreshModelListForCard(seeded.id, true);
             }

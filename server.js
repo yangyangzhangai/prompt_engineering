@@ -5,6 +5,45 @@ const path = require('path');
 
 const PORT = 3000;
 const OPENAI_API = 'api.openai.com';
+const DEEPSEEK_API = 'api.deepseek.com';
+
+function proxyJsonRequest({ req, res, hostname, path: targetPath, method }) {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': req.headers['authorization'] || ''
+        };
+
+        if (method === 'GET') {
+            delete headers['Content-Type'];
+        }
+
+        const options = {
+            hostname,
+            path: targetPath,
+            method,
+            headers
+        };
+
+        const proxyReq = https.request(options, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+            proxyRes.pipe(res);
+        });
+
+        proxyReq.on('error', (err) => {
+            console.error('Proxy error:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: { message: err.message } }));
+        });
+
+        if (method !== 'GET' && body) {
+            proxyReq.write(body);
+        }
+        proxyReq.end();
+    });
+}
 
 const server = http.createServer(async (req, res) => {
     // 设置 CORS 头
@@ -18,60 +57,25 @@ const server = http.createServer(async (req, res) => {
         return;
     }
     
-    // 代理 API 请求
+    // OpenAI 代理
     if ((req.url === '/v1/chat/completions' || req.url === '/v1/chat/completions/') && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', () => {
-            const options = {
-                hostname: OPENAI_API,
-                path: '/v1/chat/completions',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': req.headers['authorization'] || ''
-                }
-            };
-            
-            const proxyReq = https.request(options, (proxyRes) => {
-                res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
-                proxyRes.pipe(res);
-            });
-            
-            proxyReq.on('error', (err) => {
-                console.error('Proxy error:', err);
-                res.writeHead(500);
-                res.end(JSON.stringify({ error: { message: err.message } }));
-            });
-            
-            proxyReq.write(body);
-            proxyReq.end();
-        });
+        proxyJsonRequest({ req, res, hostname: OPENAI_API, path: '/v1/chat/completions', method: 'POST' });
         return;
     }
 
     if ((req.url === '/v1/models' || req.url === '/v1/models/') && req.method === 'GET') {
-        const options = {
-            hostname: OPENAI_API,
-            path: '/v1/models',
-            method: 'GET',
-            headers: {
-                'Authorization': req.headers['authorization'] || ''
-            }
-        };
+        proxyJsonRequest({ req, res, hostname: OPENAI_API, path: '/v1/models', method: 'GET' });
+        return;
+    }
 
-        const proxyReq = https.request(options, (proxyRes) => {
-            res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
-            proxyRes.pipe(res);
-        });
+    // DeepSeek 代理
+    if ((req.url === '/deepseek/v1/chat/completions' || req.url === '/deepseek/v1/chat/completions/') && req.method === 'POST') {
+        proxyJsonRequest({ req, res, hostname: DEEPSEEK_API, path: '/v1/chat/completions', method: 'POST' });
+        return;
+    }
 
-        proxyReq.on('error', (err) => {
-            console.error('Proxy error:', err);
-            res.writeHead(500);
-            res.end(JSON.stringify({ error: { message: err.message } }));
-        });
-
-        proxyReq.end();
+    if ((req.url === '/deepseek/v1/models' || req.url === '/deepseek/v1/models/') && req.method === 'GET') {
+        proxyJsonRequest({ req, res, hostname: DEEPSEEK_API, path: '/v1/models', method: 'GET' });
         return;
     }
     
