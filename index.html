@@ -617,6 +617,26 @@
             color: #8b7166;
         }
 
+        .btn-best {
+            padding: 7px 10px;
+            border-radius: 9px;
+            border: 1px solid rgba(122, 92, 78, 0.24);
+            background: rgba(244, 236, 230, 0.86);
+            color: #6a4f47;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .btn-best:hover {
+            background: rgba(236, 224, 216, 0.92);
+        }
+
+        .btn-best.active {
+            border-color: rgba(47, 122, 98, 0.5);
+            background: rgba(47, 122, 98, 0.16);
+            color: #2f7a62;
+        }
+
         .error-details {
             margin-top: 10px;
             border: 1px solid rgba(184, 73, 73, 0.28);
@@ -1214,7 +1234,8 @@
                         message: String(round?.message || ""),
                         scores: round?.scores && typeof round.scores === "object" ? { ...round.scores } : {},
                         comments: round?.comments && typeof round.comments === "object" ? { ...round.comments } : {},
-                        responses: round?.responses && typeof round.responses === "object" ? { ...round.responses } : {}
+                        responses: round?.responses && typeof round.responses === "object" ? { ...round.responses } : {},
+                        bestCardId: String(round?.bestCardId || "")
                     }))
                     : []
             };
@@ -1254,7 +1275,8 @@
                 message: String(message || ""),
                 scores: {},
                 comments: {},
-                responses: {}
+                responses: {},
+                bestCardId: ""
             };
 
             cards.forEach(card => {
@@ -1359,6 +1381,17 @@
             saveRatingState();
         }
 
+        function setRoundBest(cardId) {
+            const round = getCurrentRound();
+            if (!round) {
+                alert("请先发送一轮消息，再标记本轮最佳。");
+                return;
+            }
+            round.bestCardId = round.bestCardId === cardId ? "" : cardId;
+            saveRatingState();
+            refreshRatingPanels();
+        }
+
         function getCardRatingStats(cardId) {
             const values = ratingState.rounds
                 .map(round => Number(getCardScore(cardId, round)))
@@ -1366,6 +1399,14 @@
             if (!values.length) return { count: 0, avg: "-" };
             const avg = (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2);
             return { count: values.length, avg };
+        }
+
+        function getCardAverageScore(cardId) {
+            const values = ratingState.rounds
+                .map(round => Number(getCardScore(cardId, round)))
+                .filter(value => !Number.isNaN(value) && value >= 1 && value <= 5);
+            if (!values.length) return "";
+            return (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2);
         }
 
         function createRatingButtons(cardId, activeScore) {
@@ -1383,6 +1424,7 @@
             const activeScore = Number(getCardScore(cardId, round));
             const comment = getCardComment(cardId, round);
             const hasResponse = Boolean(getCardResponse(cardId, round));
+            const isBest = round && round.bestCardId === cardId;
             const roundLabel = round ? `第 ${ratingState.rounds.length} 轮` : "尚未开始";
             const tip = round
                 ? "本轮点击分数即可保存（1-5 分）"
@@ -1394,6 +1436,7 @@
                     <div class="rating-stats">累计 ${stats.count} 次 | 平均 ${stats.avg} | 原文${hasResponse ? "已保存" : "待返回"}</div>
                 </div>
                 <div class="rating-scores">${createRatingButtons(cardId, activeScore)}</div>
+                <button class="btn-best ${isBest ? "active" : ""}" onclick="setRoundBest('${cardId}')">${isBest ? "已标记本轮最佳" : "设为本轮最佳"}</button>
                 <div class="field">
                     <label>评语（可选）</label>
                     <textarea id="rating-comment-${cardId}" placeholder="可写可不写，例如：这轮回答结构好，但不够简洁" onchange="setCardComment('${cardId}', this.value)">${escapeHtml(comment)}</textarea>
@@ -1420,6 +1463,21 @@
             return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
         }
 
+        function formatRoundCellForExport(card, round) {
+            const score = getCardScore(card.id, round);
+            const comment = getCardComment(card.id, round);
+            const response = getCardResponse(card.id, round);
+            const parts = [];
+
+            parts.push(`分数: ${score === "" ? "" : score}`);
+            parts.push(`评语: ${comment || ""}`);
+            if (round.bestCardId === card.id) {
+                parts.push("本轮最佳: 是");
+            }
+            parts.push(`回复: ${response || ""}`);
+            return parts.join("\n");
+        }
+
         function exportRatingsToExcel() {
             if (!hasRatingRounds()) {
                 alert("暂无评分数据，请先发送消息并打分。\n");
@@ -1439,38 +1497,17 @@
             rows.push(["Seed", ...cards.map(card => card.seed === "" ? "" : card.seed)]);
             rows.push(["Max Tokens", ...cards.map(card => card.maxTokens)]);
             rows.push(["系统 Prompt", ...cards.map(card => card.systemPrompt)]);
+            rows.push(["模型平均分", ...cards.map(card => getCardAverageScore(card.id))]);
             rows.push([]);
-            rows.push(["评分轮次", "发送时间", "消息", ...modelHeaders]);
+            rows.push(["评分轮次", "发送时间", "用户消息", ...modelHeaders]);
 
             ratingState.rounds.forEach((round, idx) => {
                 rows.push([
                     `第${idx + 1}轮`,
                     formatTime(round.ts),
                     round.message,
-                    ...cards.map(card => {
-                        const score = getCardScore(card.id, round);
-                        return score === "" ? "" : score;
-                    })
+                    ...cards.map(card => formatRoundCellForExport(card, round))
                 ]);
-            });
-
-            rows.push([]);
-            rows.push(["评分轮次", "模型", "模型名称", "发送时间", "用户消息", "模型返回原文", "分数", "评语"]);
-
-            ratingState.rounds.forEach((round, idx) => {
-                cards.forEach((card, cardIndex) => {
-                    const score = getCardScore(card.id, round);
-                    rows.push([
-                        `第${idx + 1}轮`,
-                        `模型${cardIndex + 1}`,
-                        card.name,
-                        formatTime(round.ts),
-                        round.message,
-                        getCardResponse(card.id, round),
-                        score === "" ? "" : score,
-                        getCardComment(card.id, round)
-                    ]);
-                });
             });
 
             const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
