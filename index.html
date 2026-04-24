@@ -558,6 +558,65 @@
 
         .result-content.error { color: #9f3f3f; }
 
+        .rating-section {
+            border: 1px solid rgba(122, 92, 78, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.84);
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .rating-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .rating-title {
+            font-size: 0.84rem;
+            color: #6a4f47;
+            font-weight: 600;
+        }
+
+        .rating-stats {
+            font-size: 0.78rem;
+            color: #8b6b5f;
+        }
+
+        .rating-scores {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .score-btn {
+            border: 1px solid rgba(122, 92, 78, 0.22);
+            border-radius: 8px;
+            background: rgba(244, 236, 230, 0.78);
+            color: #6d5047;
+            font-size: 0.76rem;
+            padding: 6px 0;
+            font-weight: 600;
+        }
+
+        .score-btn:hover {
+            background: rgba(235, 215, 203, 0.8);
+        }
+
+        .score-btn.active {
+            border-color: rgba(180, 109, 93, 0.56);
+            background: linear-gradient(120deg, rgba(195, 127, 106, 0.9), rgba(170, 102, 87, 0.9));
+            color: #fff;
+        }
+
+        .rating-tip {
+            font-size: 0.76rem;
+            color: #8b7166;
+        }
+
         .error-details {
             margin-top: 10px;
             border: 1px solid rgba(184, 73, 73, 0.28);
@@ -617,6 +676,7 @@
             .card-header { align-items: flex-start; }
             .action-row { gap: 8px; }
             .random-controls { grid-template-columns: 1fr; }
+            .rating-scores { grid-template-columns: repeat(5, minmax(0, 1fr)); }
             .history-drawer {
                 top: 10px;
                 right: 10px;
@@ -650,6 +710,7 @@
                 <button class="btn-add" onclick="addModelCard()">+ 添加模型卡片</button>
                 <button class="btn-soft" onclick="loadAnnotationTemplate()">批注测试模板</button>
                 <button class="btn-soft" onclick="loadRandomAnnotationTest()">随机批注测试</button>
+                <button class="btn-soft" onclick="exportRatingsToExcel()">导出评分 Excel</button>
                 <button class="btn-soft" onclick="clearAll()">清空结果</button>
                 <button class="btn-danger" onclick="clearAllStorage()">清除本地配置</button>
             </div>
@@ -736,6 +797,8 @@
         const MODEL_CACHE_TTL_MS = 1000 * 60 * 30;
         const PROVIDER_KEYS_STORAGE_KEY = "provider_keys_v1";
         const PROMPT_HISTORY_KEY = "price_prompt_history_v1";
+        const RATING_STATE_KEY = "model_rating_state_v1";
+        const MAX_STORED_RESPONSE_CHARS = 12000;
 
         const PROVIDER_META = {
             openai: {
@@ -782,6 +845,11 @@
             user: [],
             system: [],
             comboHashes: []
+        };
+
+        let ratingState = {
+            sessionId: "",
+            rounds: []
         };
 
         function getProviderLabel(provider) {
@@ -1124,6 +1192,298 @@
             localStorage.setItem(PROMPT_HISTORY_KEY, JSON.stringify(promptHistory));
         }
 
+        function createRatingSessionId() {
+            return `rating_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function defaultRatingState() {
+            return {
+                sessionId: createRatingSessionId(),
+                rounds: []
+            };
+        }
+
+        function normalizeRatingState(raw) {
+            const safe = raw && typeof raw === "object" ? raw : {};
+            return {
+                sessionId: String(safe.sessionId || createRatingSessionId()),
+                rounds: Array.isArray(safe.rounds)
+                    ? safe.rounds.map((round, idx) => ({
+                        id: String(round?.id || `r_${idx}_${Date.now().toString(36)}`),
+                        ts: Number(round?.ts || Date.now()),
+                        message: String(round?.message || ""),
+                        scores: round?.scores && typeof round.scores === "object" ? { ...round.scores } : {},
+                        comments: round?.comments && typeof round.comments === "object" ? { ...round.comments } : {},
+                        responses: round?.responses && typeof round.responses === "object" ? { ...round.responses } : {}
+                    }))
+                    : []
+            };
+        }
+
+        function loadRatingState() {
+            const raw = localStorage.getItem(RATING_STATE_KEY);
+            if (!raw) {
+                ratingState = defaultRatingState();
+                return;
+            }
+            try {
+                ratingState = normalizeRatingState(JSON.parse(raw));
+            } catch (err) {
+                console.error("读取评分状态失败:", err);
+                ratingState = defaultRatingState();
+            }
+        }
+
+        function saveRatingState() {
+            localStorage.setItem(RATING_STATE_KEY, JSON.stringify(ratingState));
+        }
+
+        function hasRatingRounds() {
+            return Array.isArray(ratingState.rounds) && ratingState.rounds.length > 0;
+        }
+
+        function getCurrentRound() {
+            if (!hasRatingRounds()) return null;
+            return ratingState.rounds[ratingState.rounds.length - 1];
+        }
+
+        function startRatingRound(message) {
+            const nextRound = {
+                id: createCardId(),
+                ts: Date.now(),
+                message: String(message || ""),
+                scores: {},
+                comments: {},
+                responses: {}
+            };
+
+            cards.forEach(card => {
+                nextRound.scores[card.id] = "";
+                nextRound.comments[card.id] = "";
+                nextRound.responses[card.id] = "";
+            });
+
+            ratingState.rounds.push(nextRound);
+            if (ratingState.rounds.length > 200) {
+                ratingState.rounds = ratingState.rounds.slice(-200);
+            }
+            saveRatingState();
+            refreshRatingPanels();
+        }
+
+        function resetRatingSession() {
+            ratingState = defaultRatingState();
+            saveRatingState();
+            refreshRatingPanels();
+        }
+
+        function cardConfigFingerprint(card) {
+            return JSON.stringify({
+                provider: card.provider,
+                apiUrl: card.apiUrl,
+                model: card.model,
+                temperature: Number(card.temperature ?? 0.7),
+                topP: Number(card.topP ?? 1),
+                topK: card.topK === "" ? "" : Number(card.topK),
+                seed: card.seed === "" ? "" : Number(card.seed),
+                maxTokens: Number(card.maxTokens ?? 2048),
+                systemPrompt: String(card.systemPrompt || "")
+            });
+        }
+
+        function shouldAskRatingSessionOnConfigChange(beforeCard, nextCard) {
+            if (!beforeCard || !nextCard) return false;
+            if (!hasRatingRounds()) return false;
+            return cardConfigFingerprint(beforeCard) !== cardConfigFingerprint(nextCard);
+        }
+
+        function getCardScore(cardId, round) {
+            if (!round || !round.scores) return "";
+            const value = round.scores[cardId];
+            if (value === "" || value === undefined || value === null) return "";
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? "" : parsed;
+        }
+
+        function getCardComment(cardId, round) {
+            if (!round || !round.comments) return "";
+            return String(round.comments[cardId] || "");
+        }
+
+        function getCardResponse(cardId, round) {
+            if (!round || !round.responses) return "";
+            return String(round.responses[cardId] || "");
+        }
+
+        function toStoredResponseText(text) {
+            const normalized = String(text ?? "").trim();
+            if (!normalized) return "";
+            if (normalized.length <= MAX_STORED_RESPONSE_CHARS) return normalized;
+            return `${normalized.slice(0, MAX_STORED_RESPONSE_CHARS)}\n\n[已截断，原文过长]`;
+        }
+
+        function updateCurrentRoundResponse(cardId, responseText) {
+            const round = getCurrentRound();
+            if (!round) return;
+            if (!round.responses || typeof round.responses !== "object") {
+                round.responses = {};
+            }
+            round.responses[cardId] = toStoredResponseText(responseText);
+            saveRatingState();
+        }
+
+        function setCardScore(cardId, score) {
+            const round = getCurrentRound();
+            if (!round) {
+                alert("请先发送一轮消息，再为各模型打分。");
+                return;
+            }
+
+            const safeScore = Number(score);
+            if (Number.isNaN(safeScore) || safeScore < 1 || safeScore > 5) return;
+            round.scores[cardId] = safeScore;
+            saveRatingState();
+            refreshRatingPanels();
+        }
+
+        function setCardComment(cardId, value) {
+            const round = getCurrentRound();
+            if (!round) {
+                alert("请先发送一轮消息，再填写评语。");
+                return;
+            }
+            if (!round.comments || typeof round.comments !== "object") {
+                round.comments = {};
+            }
+            round.comments[cardId] = String(value || "").trim();
+            saveRatingState();
+        }
+
+        function getCardRatingStats(cardId) {
+            const values = ratingState.rounds
+                .map(round => Number(getCardScore(cardId, round)))
+                .filter(value => !Number.isNaN(value) && value >= 1 && value <= 5);
+            if (!values.length) return { count: 0, avg: "-" };
+            const avg = (values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2);
+            return { count: values.length, avg };
+        }
+
+        function createRatingButtons(cardId, activeScore) {
+            return Array.from({ length: 5 }, (_, idx) => idx + 1)
+                .map(score => `<button class="score-btn ${activeScore === score ? "active" : ""}" onclick="setCardScore('${cardId}', ${score})">${score}</button>`)
+                .join("");
+        }
+
+        function renderRatingPanel(cardId) {
+            const panel = document.getElementById(`rating-${cardId}`);
+            if (!panel) return;
+
+            const round = getCurrentRound();
+            const stats = getCardRatingStats(cardId);
+            const activeScore = Number(getCardScore(cardId, round));
+            const comment = getCardComment(cardId, round);
+            const hasResponse = Boolean(getCardResponse(cardId, round));
+            const roundLabel = round ? `第 ${ratingState.rounds.length} 轮` : "尚未开始";
+            const tip = round
+                ? "本轮点击分数即可保存（1-5 分）"
+                : "发送消息后，会自动开启新一轮打分";
+
+            panel.innerHTML = `
+                <div class="rating-head">
+                    <div class="rating-title">打分面板 · ${roundLabel}</div>
+                    <div class="rating-stats">累计 ${stats.count} 次 | 平均 ${stats.avg} | 原文${hasResponse ? "已保存" : "待返回"}</div>
+                </div>
+                <div class="rating-scores">${createRatingButtons(cardId, activeScore)}</div>
+                <div class="field">
+                    <label>评语（可选）</label>
+                    <textarea id="rating-comment-${cardId}" placeholder="可写可不写，例如：这轮回答结构好，但不够简洁" onchange="setCardComment('${cardId}', this.value)">${escapeHtml(comment)}</textarea>
+                </div>
+                <div class="rating-tip">${tip}</div>
+            `;
+        }
+
+        function refreshRatingPanels() {
+            cards.forEach(card => renderRatingPanel(card.id));
+        }
+
+        function csvEscape(value) {
+            const text = String(value ?? "");
+            if (/[",\n]/.test(text)) {
+                return `"${text.replace(/"/g, '""')}"`;
+            }
+            return text;
+        }
+
+        function formatExportDate(ts) {
+            const date = new Date(ts || Date.now());
+            const pad = num => String(num).padStart(2, "0");
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+        }
+
+        function exportRatingsToExcel() {
+            if (!hasRatingRounds()) {
+                alert("暂无评分数据，请先发送消息并打分。\n");
+                return;
+            }
+
+            const modelHeaders = cards.map((card, idx) => `模型${idx + 1}`);
+            const rows = [];
+
+            rows.push(["字段", ...modelHeaders]);
+            rows.push(["名称", ...cards.map(card => card.name)]);
+            rows.push(["供应商", ...cards.map(card => getProviderLabel(card.provider))]);
+            rows.push(["模型", ...cards.map(card => card.model)]);
+            rows.push(["温度", ...cards.map(card => card.temperature)]);
+            rows.push(["Top P", ...cards.map(card => card.topP)]);
+            rows.push(["Top K", ...cards.map(card => card.topK === "" ? "" : card.topK)]);
+            rows.push(["Seed", ...cards.map(card => card.seed === "" ? "" : card.seed)]);
+            rows.push(["Max Tokens", ...cards.map(card => card.maxTokens)]);
+            rows.push(["系统 Prompt", ...cards.map(card => card.systemPrompt)]);
+            rows.push([]);
+            rows.push(["评分轮次", "发送时间", "消息", ...modelHeaders]);
+
+            ratingState.rounds.forEach((round, idx) => {
+                rows.push([
+                    `第${idx + 1}轮`,
+                    formatTime(round.ts),
+                    round.message,
+                    ...cards.map(card => {
+                        const score = getCardScore(card.id, round);
+                        return score === "" ? "" : score;
+                    })
+                ]);
+            });
+
+            rows.push([]);
+            rows.push(["评分轮次", "模型", "模型名称", "发送时间", "用户消息", "模型返回原文", "分数", "评语"]);
+
+            ratingState.rounds.forEach((round, idx) => {
+                cards.forEach((card, cardIndex) => {
+                    const score = getCardScore(card.id, round);
+                    rows.push([
+                        `第${idx + 1}轮`,
+                        `模型${cardIndex + 1}`,
+                        card.name,
+                        formatTime(round.ts),
+                        round.message,
+                        getCardResponse(card.id, round),
+                        score === "" ? "" : score,
+                        getCardComment(card.id, round)
+                    ]);
+                });
+            });
+
+            const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `模型评分_${formatExportDate(Date.now())}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
         function updateTopMeta() {
             document.getElementById("cardCount").textContent = `当前 ${cards.length} 个模型`;
             document.getElementById("sendBtn").textContent = cards.length > 0 ? `发送到全部 ${cards.length} 个模型` : "发送到全部模型";
@@ -1386,6 +1746,8 @@
                     <div class="result-section" id="result-${card.id}">
                         ${resultPlaceholder()}
                     </div>
+
+                    <div class="rating-section" id="rating-${card.id}"></div>
                 </div>
             `;
             return el;
@@ -1397,6 +1759,7 @@
             cards.forEach(card => {
                 grid.appendChild(createCardEl(card));
             });
+            refreshRatingPanels();
             updateTopMeta();
         }
 
@@ -1526,6 +1889,16 @@
                 return;
             }
 
+            const beforeCard = cards.find(item => item.id === id);
+            if (shouldAskRatingSessionOnConfigChange(beforeCard, config)) {
+                const keep = confirm(
+                    "检测到你修改了模型配置。\n\n点击【确定】：延续当前评分，继续接着打分。\n点击【取消】：清空旧评分，重新开始新一轮。"
+                );
+                if (!keep) {
+                    resetRatingSession();
+                }
+            }
+
             providerKeys[config.provider] = config.apiKey || "";
             saveProviderKeys();
 
@@ -1599,6 +1972,7 @@
 
             trackPromptHistory(message, cards);
             renderPromptHistory();
+            startRatingRound(message);
 
             await Promise.all(cards.map(card => sendToModel(card.id, message)));
             updateTopMeta();
@@ -1615,6 +1989,7 @@
                 resultDiv.innerHTML = "<div class=\"result-content error\">⚠️ 未配置 API Key，请先在配置里填写后再发送。</div>";
                 statusSpan.className = "card-status error";
                 statusSpan.textContent = "未配置";
+                updateCurrentRoundResponse(id, "[未发送] 未配置 API Key");
                 return;
             }
 
@@ -1622,6 +1997,7 @@
                 resultDiv.innerHTML = "<div class=\"result-content error\">⚠️ 未配置模型，请先选择或手动填写模型名。</div>";
                 statusSpan.className = "card-status error";
                 statusSpan.textContent = "未配置";
+                updateCurrentRoundResponse(id, "[未发送] 未配置模型");
                 return;
             }
 
@@ -1685,6 +2061,7 @@
                     <div class="result-meta">⏱️ ${duration}s | 📊 ${String(content).length} 字符${usage}</div>
                     <div class="result-content">${escapeHtml(String(content))}</div>
                 `;
+                updateCurrentRoundResponse(id, String(content));
 
                 statusSpan.className = "card-status ready";
                 statusSpan.textContent = "完成";
@@ -1711,6 +2088,7 @@
 ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
                     </details>
                 `;
+                updateCurrentRoundResponse(id, `ERROR: ${messageText}${troubleshooting ? ` | ${troubleshooting}` : ""}`);
 
                 statusSpan.className = "card-status error";
                 statusSpan.textContent = "错误";
@@ -1739,6 +2117,7 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             localStorage.removeItem(MODEL_CACHE_KEY);
             localStorage.removeItem(PROVIDER_KEYS_STORAGE_KEY);
             localStorage.removeItem(PROMPT_HISTORY_KEY);
+            localStorage.removeItem(RATING_STATE_KEY);
             for (let i = 1; i <= 6; i += 1) {
                 localStorage.removeItem(`chutes_config_${i}`);
                 localStorage.removeItem(`chutes_api_key_${i}`);
@@ -1748,6 +2127,7 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             promptHistory.user = [];
             promptHistory.system = [];
             promptHistory.comboHashes = [];
+            ratingState = defaultRatingState();
             cards = DEFAULT_CARDS.map(item => normalizeCard(item));
             renderCards();
             renderPromptHistory();
@@ -2105,6 +2485,7 @@ ${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre>
             loadProviderKeys();
             loadModelCache();
             loadPromptHistory();
+            loadRatingState();
             cards = loadCards();
             if (!cards.length) {
                 const migrated = migrateLegacyConfigs();
